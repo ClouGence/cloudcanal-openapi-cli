@@ -16,7 +16,7 @@ func TestServiceListsDataSources(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
 			t.Fatalf("Decode() error = %v", err)
 		}
-		_, _ = w.Write([]byte(`{"code":"1","data":[{"id":7,"instanceId":"cc-mysql-1","dataSourceType":"MYSQL","hostType":"RDS","deployType":"ALIYUN","lifeCycleState":"ACTIVE","instanceDesc":"mysql source"}]}`))
+		_, _ = w.Write([]byte(`{"code":"1","data":[{"id":7,"instanceId":"cc-mysql-1","dataSourceType":"MYSQL","hostType":"RDS","deployType":"ALIYUN","lifeCycleState":"ACTIVE","instanceDesc":"mysql source","consoleJobId":123}]}`))
 	}))
 	defer server.Close()
 
@@ -37,6 +37,9 @@ func TestServiceListsDataSources(t *testing.T) {
 	if len(sources) != 1 || sources[0].ID != 7 || sources[0].InstanceID != "cc-mysql-1" {
 		t.Fatalf("sources = %#v, want single datasource", sources)
 	}
+	if string(sources[0].ConsoleJobID) != "123" {
+		t.Fatalf("consoleJobId = %q, want 123", sources[0].ConsoleJobID)
+	}
 	if gotBody["type"] != "MYSQL" || gotBody["deployType"] != "ALIYUN" || gotBody["hostType"] != "RDS" || gotBody["lifeCycleState"] != "ACTIVE" {
 		t.Fatalf("request body = %#v, want filters", gotBody)
 	}
@@ -44,7 +47,7 @@ func TestServiceListsDataSources(t *testing.T) {
 
 func TestServiceGetsDataSourceByID(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"code":"1","data":[{"id":9,"instanceId":"cc-sr-1","dataSourceType":"STARROCKS"}]}`))
+		_, _ = w.Write([]byte(`{"code":"1","data":[{"id":9,"instanceId":"cc-sr-1","dataSourceType":"STARROCKS","consoleJobId":"456"}]}`))
 	}))
 	defer server.Close()
 
@@ -64,5 +67,8 @@ func TestServiceGetsDataSourceByID(t *testing.T) {
 	}
 	if source.ID != 9 || source.DataSourceType != "STARROCKS" {
 		t.Fatalf("source = %#v, want id 9", source)
+	}
+	if string(source.ConsoleJobID) != "456" {
+		t.Fatalf("consoleJobId = %q, want 456", source.ConsoleJobID)
 	}
 }

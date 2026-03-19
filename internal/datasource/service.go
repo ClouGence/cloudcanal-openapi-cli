@@ -2,6 +2,7 @@ package datasource
 
 import (
 	"cloudcanal-openapi-cli/internal/openapi"
+	"encoding/json"
 	"fmt"
 )
 
@@ -37,18 +38,41 @@ type listRequest struct {
 }
 
 type DataSource struct {
-	ID               int64  `json:"id"`
-	InstanceID       string `json:"instanceId"`
-	DeployType       string `json:"deployType"`
-	Region           string `json:"region"`
-	DataSourceType   string `json:"dataSourceType"`
-	HostType         string `json:"hostType"`
-	InstanceDesc     string `json:"instanceDesc"`
-	ConsoleJobID     string `json:"consoleJobId"`
-	ConsoleTaskState string `json:"consoleTaskState"`
-	AccountName      string `json:"accountName"`
-	LifeCycleState   string `json:"lifeCycleState"`
-	SecurityType     string `json:"securityType"`
+	ID               int64     `json:"id"`
+	InstanceID       string    `json:"instanceId"`
+	DeployType       string    `json:"deployType"`
+	Region           string    `json:"region"`
+	DataSourceType   string    `json:"dataSourceType"`
+	HostType         string    `json:"hostType"`
+	InstanceDesc     string    `json:"instanceDesc"`
+	ConsoleJobID     Stringish `json:"consoleJobId"`
+	ConsoleTaskState string    `json:"consoleTaskState"`
+	AccountName      string    `json:"accountName"`
+	LifeCycleState   string    `json:"lifeCycleState"`
+	SecurityType     string    `json:"securityType"`
+}
+
+type Stringish string
+
+func (s *Stringish) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		*s = ""
+		return nil
+	}
+
+	var text string
+	if err := json.Unmarshal(data, &text); err == nil {
+		*s = Stringish(text)
+		return nil
+	}
+
+	var number json.Number
+	if err := json.Unmarshal(data, &number); err == nil {
+		*s = Stringish(number.String())
+		return nil
+	}
+
+	return fmt.Errorf("unsupported stringish value: %s", string(data))
 }
 
 type listResponse struct {

@@ -245,7 +245,7 @@ func instanceDesc(source *datajob.Source) string {
 	if source == nil {
 		return "-"
 	}
-	return orDash(source.InstanceDesc)
+	return orDash(util.MaskSensitiveText(source.InstanceDesc))
 }
 
 func sourceSummary(source *datajob.Source) string {
@@ -264,7 +264,7 @@ func sourceSummary(source *datajob.Source) string {
 		extras = append(extras, source.Region)
 	}
 
-	label := orDash(source.InstanceDesc)
+	label := orDash(util.MaskSensitiveText(source.InstanceDesc))
 	if len(extras) == 0 {
 		return label
 	}

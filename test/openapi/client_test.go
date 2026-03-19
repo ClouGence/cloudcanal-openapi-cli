@@ -179,6 +179,19 @@ func TestProbeAuthenticationRejectsUnexpectedApplicationFailure(t *testing.T) {
 	}
 }
 
+func TestEnsureSuccessNormalizesValidationErrors(t *testing.T) {
+	err := openapi.EnsureSuccess(openapi.Response{
+		Code: "0",
+		Msg:  `["clusterId clusterId can not be less than 1","dataJobType dataJobType can not be null"]`,
+	}, "fallback")
+	if err == nil {
+		t.Fatal("EnsureSuccess() error = nil, want non-nil")
+	}
+	if got := err.Error(); got != "clusterId can not be less than 1; dataJobType can not be null" {
+		t.Fatalf("error = %q, want normalized validation message", got)
+	}
+}
+
 func TestClientRetriesRetryableRequestsOnServerFailure(t *testing.T) {
 	attempts := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -222,7 +222,7 @@ cloudcanal clusters list --name prod --region cn-hangzhou
 
 列出机器，支持以下参数：
 
-- `--cluster-id <id>`: 按集群 ID 过滤
+- `--cluster-id <id>`: 必填，按集群 ID 过滤
 - `--source-id <id>`: 按源数据源 ID 过滤
 - `--target-id <id>`: 按目标数据源 ID 过滤
 
@@ -252,7 +252,7 @@ cloudcanal workers list --cluster-id 2
 
 列出数据任务配置规格，支持以下参数：
 
-- `--type <type>`: 按数据任务类型过滤
+- `--type <type>`: 必填，按数据任务类型过滤
 - `--initial-sync=<true|false>`: 是否初始同步
 - `--short-term-sync=<true|false>`: 是否短期同步
 

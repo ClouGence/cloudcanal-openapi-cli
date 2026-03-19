@@ -148,7 +148,7 @@ func (s *Shell) printDataSources(options datasource.ListOptions) error {
 			orDash(source.HostType),
 			orDash(source.DeployType),
 			orDash(source.LifeCycleState),
-			orDash(source.InstanceDesc),
+			orDash(util.MaskSensitiveText(source.InstanceDesc)),
 		})
 	}
 
@@ -169,7 +169,7 @@ func (s *Shell) printDataSource(dataSourceID int64) error {
 	s.io.Println(s.sectionTitle("datasource.details"))
 	s.io.Println(s.line(s.label("id"), strconv.FormatInt(source.ID, 10)))
 	s.io.Println(s.line(s.label("instanceId"), orDash(source.InstanceID)))
-	s.io.Println(s.line(s.label("description"), orDash(source.InstanceDesc)))
+	s.io.Println(s.line(s.label("description"), orDash(util.MaskSensitiveText(source.InstanceDesc))))
 	s.io.Println(s.line(s.label("type"), orDash(source.DataSourceType)))
 	s.io.Println(s.line(s.label("host"), orDash(source.HostType)))
 	s.io.Println(s.line(s.label("deploy"), orDash(source.DeployType)))
@@ -177,7 +177,7 @@ func (s *Shell) printDataSource(dataSourceID int64) error {
 	s.io.Println(s.line(s.label("lifecycle"), orDash(source.LifeCycleState)))
 	s.io.Println(s.line(s.label("account"), orDash(source.AccountName)))
 	s.io.Println(s.line(s.label("securityType"), orDash(source.SecurityType)))
-	s.io.Println(s.line(s.label("consoleJobId"), orDash(source.ConsoleJobID)))
+	s.io.Println(s.line(s.label("consoleJobId"), formatOptionalStringID(string(source.ConsoleJobID))))
 	s.io.Println(s.line(s.label("consoleTaskState"), orDash(source.ConsoleTaskState)))
 	return nil
 }
@@ -260,7 +260,7 @@ func (s *Shell) printConsoleJob(consoleJobID int64) error {
 	s.io.Println(s.line(s.label("workerName"), orDash(job.WorkerName)))
 	s.io.Println(s.line(s.label("workerDesc"), orDash(job.WorkerDesc)))
 	s.io.Println(s.line(s.label("dataSourceInstance"), orDash(job.DsInstanceID)))
-	s.io.Println(s.line(s.label("dataSourceDesc"), orDash(job.DatasourceDesc)))
+	s.io.Println(s.line(s.label("dataSourceDesc"), orDash(util.MaskSensitiveText(job.DatasourceDesc))))
 	s.io.Println(s.line(s.label("resourceType"), orDash(job.ResourceType)))
 	s.io.Println(s.line(s.label("resourceId"), formatOptionalInt64(job.ResourceID)))
 	s.io.Println(s.line(s.label("tasks"), strconv.Itoa(len(job.TaskVOList))))
@@ -357,7 +357,7 @@ func parseWorkerListOptions(tokens []string) (worker.ListOptions, error) {
 	}
 
 	result := worker.ListOptions{}
-	result.ClusterID, err = parsePositiveInt64Option(options, "clusterId", "cluster-id")
+	result.ClusterID, err = parseRequiredPositiveInt64Option(options, "clusterId", "cluster-id")
 	if err != nil {
 		return worker.ListOptions{}, err
 	}
@@ -382,7 +382,10 @@ func parseListSpecsOptions(tokens []string) (jobconfig.ListSpecsOptions, error) 
 	}
 
 	result := jobconfig.ListSpecsOptions{}
-	result.DataJobType, _ = popOption(options, "type", "data-job-type")
+	result.DataJobType, err = parseRequiredStringOption(options, "dataJobType", "type", "data-job-type")
+	if err != nil {
+		return jobconfig.ListSpecsOptions{}, err
+	}
 	result.InitialSync, err = parseBoolOption(options, "initialSync", "initial-sync")
 	if err != nil {
 		return jobconfig.ListSpecsOptions{}, err
@@ -399,4 +402,12 @@ func parseListSpecsOptions(tokens []string) (jobconfig.ListSpecsOptions, error) 
 
 func formatFloat(value float64) string {
 	return fmt.Sprintf("%.2f", value)
+}
+
+func formatOptionalStringID(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" || trimmed == "0" {
+		return "-"
+	}
+	return trimmed
 }

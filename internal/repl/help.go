@@ -255,9 +255,9 @@ func (s *Shell) helpWorkers() string {
 		return strings.TrimSpace(`
 workers 命令
 
-workers list [--cluster-id ID] [--source-id ID] [--target-id ID]
+workers list --cluster-id ID [--source-id ID] [--target-id ID]
   列出机器。
-  --cluster-id  按集群 ID 过滤。
+  --cluster-id  必填，按集群 ID 过滤。
   --source-id   按源数据源实例 ID 过滤。
   --target-id   按目标数据源实例 ID 过滤。
   示例：cloudcanal workers list --cluster-id 2
@@ -273,9 +273,9 @@ workers stop <workerId>
 	return strings.TrimSpace(`
 workers commands
 
-workers list [--cluster-id ID] [--source-id ID] [--target-id ID]
+workers list --cluster-id ID [--source-id ID] [--target-id ID]
   List workers.
-  --cluster-id  Filter by cluster ID.
+  --cluster-id  Required. Filter by cluster ID.
   --source-id   Filter by source datasource instance ID.
   --target-id   Filter by target datasource instance ID.
   Example: cloudcanal workers list --cluster-id 2
@@ -311,9 +311,9 @@ func (s *Shell) helpJobConfig() string {
 		return strings.TrimSpace(`
 job-config 命令
 
-job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=true|false]
+job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]
   列出数据任务规格。
-  --type               按任务类型过滤。
+  --type               必填，按任务类型过滤。
   --initial-sync       是否要求初始同步。
   --short-term-sync    是否要求短期同步。
   示例：cloudcanal job-config specs --type SYNC --initial-sync=true
@@ -323,9 +323,9 @@ job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=tr
 	return strings.TrimSpace(`
 job-config commands
 
-job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=true|false]
+job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]
   List data job specs.
-  --type               Filter by data job type.
+  --type               Required. Filter by data job type.
   --initial-sync       Whether initial sync is required.
   --short-term-sync    Whether short-term sync is required.
   Example: cloudcanal job-config specs --type SYNC --initial-sync=true

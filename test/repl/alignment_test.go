@@ -29,7 +29,7 @@ func TestTabularCommandsAlignMixedWidthOutput(t *testing.T) {
 		{name: "clusters list", args: []string{"clusters", "list"}},
 		{name: "workers list", args: []string{"workers", "list", "--cluster-id", "1"}},
 		{name: "consolejobs show", args: []string{"consolejobs", "show", "21"}},
-		{name: "job-config specs", args: []string{"job-config", "specs"}},
+		{name: "job-config specs", args: []string{"job-config", "specs", "--type", "SYNC"}},
 	}
 
 	for _, tc := range testCases {

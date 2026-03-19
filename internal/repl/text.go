@@ -86,16 +86,16 @@ func (s *Shell) usageClustersList() string {
 
 func (s *Shell) usageWorkers() string {
 	if s.isChinese() {
-		return "用法：workers list [--cluster-id ID] [--source-id ID] [--target-id ID] | workers start <workerId> | workers stop <workerId>"
+		return "用法：workers list --cluster-id ID [--source-id ID] [--target-id ID] | workers start <workerId> | workers stop <workerId>"
 	}
-	return "Usage: workers list [--cluster-id ID] [--source-id ID] [--target-id ID] | workers start <workerId> | workers stop <workerId>"
+	return "Usage: workers list --cluster-id ID [--source-id ID] [--target-id ID] | workers start <workerId> | workers stop <workerId>"
 }
 
 func (s *Shell) usageWorkersList() string {
 	if s.isChinese() {
-		return "用法：workers list [--cluster-id ID] [--source-id ID] [--target-id ID]"
+		return "用法：workers list --cluster-id ID [--source-id ID] [--target-id ID]"
 	}
-	return "Usage: workers list [--cluster-id ID] [--source-id ID] [--target-id ID]"
+	return "Usage: workers list --cluster-id ID [--source-id ID] [--target-id ID]"
 }
 
 func (s *Shell) usageWorkerAction(action string) string {
@@ -121,16 +121,16 @@ func (s *Shell) usageConsoleJobShow() string {
 
 func (s *Shell) usageJobConfig() string {
 	if s.isChinese() {
-		return "用法：job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=true|false]"
+		return "用法：job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]"
 	}
-	return "Usage: job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=true|false]"
+	return "Usage: job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]"
 }
 
 func (s *Shell) usageJobConfigSpecs() string {
 	if s.isChinese() {
-		return "用法：job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=true|false]"
+		return "用法：job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]"
 	}
-	return "Usage: job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=true|false]"
+	return "Usage: job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]"
 }
 
 func (s *Shell) usageConfigShow() string {

@@ -126,6 +126,22 @@ func parsePositiveInt64Option(options map[string]string, fieldName string, names
 	return parsePositiveInt64(value, fieldName)
 }
 
+func parseRequiredPositiveInt64Option(options map[string]string, fieldName string, names ...string) (int64, error) {
+	value, ok := popOption(options, names...)
+	if !ok || strings.TrimSpace(value) == "" {
+		return 0, errors.New(i18n.T("parser.optionRequired", fieldLabel(fieldName)))
+	}
+	return parsePositiveInt64(value, fieldName)
+}
+
+func parseRequiredStringOption(options map[string]string, fieldName string, names ...string) (string, error) {
+	value, ok := popOption(options, names...)
+	if !ok || strings.TrimSpace(value) == "" {
+		return "", errors.New(i18n.T("parser.optionRequired", fieldLabel(fieldName)))
+	}
+	return value, nil
+}
+
 func parseBoolOption(options map[string]string, fieldName string, names ...string) (*bool, error) {
 	value, ok := popOption(options, names...)
 	if !ok {
@@ -169,6 +185,8 @@ func fieldLabel(fieldName string) string {
 		return i18n.T("parser.consoleJobId")
 	case "dataSourceId":
 		return i18n.T("parser.dataSourceId")
+	case "dataJobType":
+		return i18n.T("parser.dataJobType")
 	case "sourceInstanceId":
 		return i18n.T("parser.sourceInstanceId")
 	case "targetInstanceId":
