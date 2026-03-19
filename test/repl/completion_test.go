@@ -29,7 +29,7 @@ func TestCompletionCandidatesSuggestCommandsFlagsAndValues(t *testing.T) {
 		args []string
 		want []string
 	}{
-		{name: "top level", args: []string{""}, want: []string{"jobs", "completion", "lang"}},
+		{name: "top level", args: []string{""}, want: []string{"help", "jobs", "lang"}},
 		{name: "top level global flag", args: []string{"--o"}, want: []string{"--output"}},
 		{name: "jobs subcommand", args: []string{"jobs", "re"}, want: []string{"replay"}},
 		{name: "list flag", args: []string{"jobs", "list", "--so"}, want: []string{"--source-id"}},
@@ -51,6 +51,20 @@ func TestCompletionCandidatesSuggestCommandsFlagsAndValues(t *testing.T) {
 	}
 }
 
+func TestCompletionCandidatesHideInternalAndAliasCommands(t *testing.T) {
+	candidates := repl.CompletionCandidates([]string{""}, true)
+	for _, hidden := range []string{"clear", "cls", "completion", "jobconfig", "language", "quit"} {
+		if contains(candidates, hidden) {
+			t.Fatalf("completion candidates = %v, should not contain %q", candidates, hidden)
+		}
+	}
+
+	helpCandidates := repl.CompletionCandidates([]string{"help", ""}, false)
+	if contains(helpCandidates, "completion") {
+		t.Fatalf("help completion candidates = %v, should not contain completion", helpCandidates)
+	}
+}
+
 func TestCompletionCandidatesDoNotSuggestFlagsWhileTypingFreeformValues(t *testing.T) {
 	candidates := repl.CompletionCandidates([]string{"jobs", "list", "--name", ""}, false)
 	if len(candidates) != 0 {
@@ -69,8 +83,11 @@ func TestShellCompletionCommands(t *testing.T) {
 	if !strings.Contains(io.Output(), "#compdef cloudcanal") {
 		t.Fatalf("zsh completion output missing compdef: %q", io.Output())
 	}
-	if !strings.Contains(io.Output(), "__complete") {
-		t.Fatalf("zsh completion output missing hidden completion command: %q", io.Output())
+	if !strings.Contains(io.Output(), repl.CompletionEnvVar+"=1") {
+		t.Fatalf("zsh completion output missing hidden completion env var: %q", io.Output())
+	}
+	if strings.Contains(io.Output(), "__complete") {
+		t.Fatalf("zsh completion output should not expose __complete: %q", io.Output())
 	}
 
 	io = testsupport.NewTestConsole()

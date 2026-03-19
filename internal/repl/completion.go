@@ -13,36 +13,30 @@ type flagSpec struct {
 	values []string
 }
 
+const CompletionEnvVar = "CLOUDCANAL_INTERNAL_COMPLETE"
+
 var (
-	topLevelCommands = []string{
+	visibleTopLevelCommands = []string{
 		"help",
-		"clear",
-		"cls",
 		"jobs",
 		"datasources",
 		"clusters",
 		"workers",
 		"consolejobs",
 		"job-config",
-		"jobconfig",
 		"config",
 		"lang",
-		"language",
-		"completion",
 	}
-	replOnlyCommands = []string{"exit", "quit"}
-	helpTopics       = []string{
+	visibleReplOnlyCommands = []string{"exit"}
+	visibleHelpTopics       = []string{
 		"jobs",
 		"datasources",
 		"clusters",
 		"workers",
 		"consolejobs",
 		"job-config",
-		"jobconfig",
 		"config",
 		"lang",
-		"language",
-		"completion",
 	}
 	boolValues   = []string{"true", "false"}
 	outputValues = []string{"text", "json"}
@@ -109,9 +103,9 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 		if name, valuePrefix, ok := splitInlineFlag(prefix); ok && name == "--output" {
 			return prependInlineFlag(name, matchCandidates(outputValues, valuePrefix))
 		}
-		candidates := append([]string{}, topLevelCommands...)
+		candidates := append([]string{}, visibleTopLevelCommands...)
 		if replMode {
-			candidates = append(candidates, replOnlyCommands...)
+			candidates = append(candidates, visibleReplOnlyCommands...)
 		}
 		if prefix == "" || strings.HasPrefix(prefix, "--") {
 			candidates = append(candidates, "--output")
@@ -122,7 +116,7 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 	root := strings.ToLower(context[0])
 	switch root {
 	case "help":
-		return matchCandidates(helpTopics, prefix)
+		return matchCandidates(visibleHelpTopics, prefix)
 	case "completion":
 		if len(context) == 1 {
 			return matchCandidates([]string{"zsh", "bash"}, prefix)
@@ -415,14 +409,14 @@ _%s() {
   done
   args+=("$PREFIX")
 
-  completions=("${(@f)$("%s" __complete "${args[@]}")}")
+  completions=("${(@f)$(%s=1 "%s" "${args[@]}")}")
   if (( ${#completions[@]} > 0 )); then
     compadd -Q -- ${completions[@]}
   fi
 }
 
 compdef _%s %s
-`, commandName, commandName, commandName, commandName, commandName)
+`, commandName, commandName, CompletionEnvVar, commandName, commandName, commandName)
 }
 
 func renderBashCompletionScript(commandName string) string {
@@ -439,9 +433,9 @@ func renderBashCompletionScript(commandName string) string {
   args+=("$cur")
 
   local IFS=$'\n'
-  COMPREPLY=($("%s" __complete "${args[@]}"))
+  COMPREPLY=($(%s=1 "%s" "${args[@]}"))
 }
 
 complete -F _%s_completion %s
-`, commandName, commandName, commandName, commandName)
+`, commandName, CompletionEnvVar, commandName, commandName, commandName)
 }

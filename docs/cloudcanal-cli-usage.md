@@ -38,6 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 - 默认会把二进制安装到 `~/.cloudcanal-cli/bin/cloudcanal`
 - 补全文件会安装到 `~/.cloudcanal-cli/completions`
 - 之后会自动完成命令、PATH 和补全安装
+- 交互模式和 shell 都支持 TAB 自动补全，通常不需要手动处理补全脚本
 
 一键卸载：
 
@@ -92,10 +93,6 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 - `help config`
 - `help lang`
 
-`clear` / `cls`
-
-清空当前终端屏幕，适合在交互模式下快速整理输出内容。
-
 `config show`
 
 显示当前配置，`accessKey` 会做掩码处理，同时会显示当前 `language`。
@@ -112,18 +109,7 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 
 切换 CLI 文案语言，并持久化到配置文件。
 
-`completion <zsh|bash> [commandName]`
-
-输出 shell TAB 补全脚本。安装脚本默认会安装 zsh 和 bash 的补全文件；如果你想手动安装，也可以直接执行：
-
-```bash
-cloudcanal completion zsh
-cloudcanal completion bash
-```
-
-安装后的补全文件默认放在 `~/.cloudcanal-cli/completions`。
-
-`exit` / `quit`
+`exit`
 
 退出交互模式。
 

@@ -5,7 +5,7 @@ CloudCanal OpenAPI 的命令行工具，支持：
 - 交互式命令行
 - 单次命令执行
 - `--output json` 机器可读输出
-- zsh / bash TAB 补全
+- 安装脚本默认配置 zsh / bash TAB 补全
 
 完整命令说明见 [docs/cloudcanal-cli-usage.md](docs/cloudcanal-cli-usage.md)。
 
@@ -80,7 +80,7 @@ cloudcanal jobs list --type SYNC --output json
 - 安装、初始化、命令参数、示例：[docs/cloudcanal-cli-usage.md](docs/cloudcanal-cli-usage.md)
 - 版本变更记录：[CHANGELOG.md](CHANGELOG.md)
 - 机器可读输出：在查询命令后追加 `--output json`
-- 补全脚本：`cloudcanal completion zsh` / `cloudcanal completion bash`
+- 交互模式和 shell 均支持 TAB 自动补全
 
 ## 卸载
 

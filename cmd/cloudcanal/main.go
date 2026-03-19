@@ -47,6 +47,13 @@ func main() {
 }
 
 func handleEarlyCommands(args []string) (bool, int) {
+	if os.Getenv(repl.CompletionEnvVar) == "1" {
+		for _, candidate := range repl.CompletionCandidates(args, false) {
+			fmt.Println(candidate)
+		}
+		return true, 0
+	}
+
 	if len(args) == 0 {
 		return false, 0
 	}

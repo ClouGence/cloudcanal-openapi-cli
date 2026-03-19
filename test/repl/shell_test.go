@@ -321,6 +321,48 @@ func TestShellClearsScreenWithAliases(t *testing.T) {
 	}
 }
 
+func TestShellHelpOverviewHidesInternalCommands(t *testing.T) {
+	runtime := &fakeRuntime{
+		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
+		dataJobs:    &fakeDataJobs{},
+		dataSources: &fakeDataSources{},
+		clusters:    &fakeClusters{},
+		workers:     &fakeWorkers{},
+		consoleJobs: &fakeConsoleJobs{},
+		jobConfigs:  &fakeJobConfigs{},
+	}
+	io := testsupport.NewTestConsole()
+
+	shell := repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"help"}); err != nil {
+		t.Fatalf("ExecuteArgs(help) error = %v", err)
+	}
+
+	out := io.Output()
+	for _, want := range []string{
+		"jobs list",
+		"datasources list",
+		"config init",
+		"TAB               Complete commands and options",
+		"exit              Leave interactive mode",
+	} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("output missing %q in %q", want, out)
+		}
+	}
+	for _, hidden := range []string{
+		"completion zsh",
+		"help completion",
+		"clear             Clear the current screen",
+		"cls               Alias of clear",
+		"quit",
+	} {
+		if strings.Contains(out, hidden) {
+			t.Fatalf("output should not contain %q in %q", hidden, out)
+		}
+	}
+}
+
 func TestShellSwitchesLanguageForFollowUpOutput(t *testing.T) {
 	runtime := &fakeRuntime{
 		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
