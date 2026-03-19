@@ -1,11 +1,18 @@
 package jobconfig
 
-import "cloudcanal-openapi-cli/internal/openapi"
+import (
+	"cloudcanal-openapi-cli/internal/openapi"
+	"encoding/json"
+)
 
-const listSpecsPath = "/cloudcanal/console/api/v1/openapi/constant/listspecs"
+const (
+	listSpecsPath        = "/cloudcanal/console/api/v1/openapi/constant/listspecs"
+	transformJobTypePath = "/cloudcanal/console/api/v1/openapi/constant/transformjobtype"
+)
 
 type Operations interface {
 	ListSpecs(options ListSpecsOptions) ([]Spec, error)
+	TransformJobType(options TransformJobTypeOptions) (TransformJobTypeResponse, error)
 }
 
 type Service struct {
@@ -22,10 +29,20 @@ type ListSpecsOptions struct {
 	ShortTermSync *bool
 }
 
+type TransformJobTypeOptions struct {
+	SourceType string
+	TargetType string
+}
+
 type listSpecsRequest struct {
 	DataJobType   string `json:"dataJobType,omitempty"`
 	InitialSync   *bool  `json:"initialSync,omitempty"`
 	ShortTermSync *bool  `json:"shortTermSync,omitempty"`
+}
+
+type transformJobTypeRequest struct {
+	SourceType string `json:"sourceType,omitempty"`
+	TargetType string `json:"targetType,omitempty"`
 }
 
 type Spec struct {
@@ -44,6 +61,11 @@ type listSpecsResponse struct {
 	Data []Spec `json:"data"`
 }
 
+type TransformJobTypeResponse struct {
+	openapi.Response
+	Data json.RawMessage `json:"data"`
+}
+
 func (s *Service) ListSpecs(options ListSpecsOptions) ([]Spec, error) {
 	var out listSpecsResponse
 	if err := s.client.PostJSONWithOptions(listSpecsPath, listSpecsRequest{
@@ -60,4 +82,18 @@ func (s *Service) ListSpecs(options ListSpecsOptions) ([]Spec, error) {
 		return []Spec{}, nil
 	}
 	return out.Data, nil
+}
+
+func (s *Service) TransformJobType(options TransformJobTypeOptions) (TransformJobTypeResponse, error) {
+	var out TransformJobTypeResponse
+	if err := s.client.PostJSONWithOptions(transformJobTypePath, transformJobTypeRequest{
+		SourceType: options.SourceType,
+		TargetType: options.TargetType,
+	}, &out, openapi.RequestOptions{Retryable: true}); err != nil {
+		return TransformJobTypeResponse{}, err
+	}
+	if err := openapi.EnsureSuccess(out.Response, "failed to transform job type"); err != nil {
+		return TransformJobTypeResponse{}, err
+	}
+	return out, nil
 }

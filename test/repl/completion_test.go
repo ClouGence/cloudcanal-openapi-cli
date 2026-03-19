@@ -21,6 +21,10 @@ func TestShellRegistersCompleter(t *testing.T) {
 	if !contains(candidates, "job-config") {
 		t.Fatalf("completion candidates = %v, want job-config", candidates)
 	}
+	schemaCandidates := io.Complete("sc")
+	if !contains(schemaCandidates, "schemas") {
+		t.Fatalf("completion candidates = %v, want schemas", schemaCandidates)
+	}
 }
 
 func TestCompletionCandidatesSuggestCommandsFlagsAndValues(t *testing.T) {
@@ -29,17 +33,22 @@ func TestCompletionCandidatesSuggestCommandsFlagsAndValues(t *testing.T) {
 		args []string
 		want []string
 	}{
-		{name: "top level", args: []string{""}, want: []string{"help", "jobs", "config"}},
+		{name: "top level", args: []string{""}, want: []string{"help", "jobs", "config", "schemas"}},
 		{name: "top level help flag", args: []string{"--h"}, want: []string{"--help"}},
 		{name: "top level global flag", args: []string{"--o"}, want: []string{"--output"}},
 		{name: "jobs help flag", args: []string{"jobs", "--h"}, want: []string{"--help"}},
 		{name: "config subcommand", args: []string{"config", "la"}, want: []string{"lang"}},
 		{name: "config lang value", args: []string{"config", "lang", "set", ""}, want: []string{"en", "zh"}},
 		{name: "jobs subcommand", args: []string{"jobs", "re"}, want: []string{"replay"}},
+		{name: "jobs create flag", args: []string{"jobs", "create", "--bo"}, want: []string{"--body", "--body-file"}},
 		{name: "list flag", args: []string{"jobs", "list", "--so"}, want: []string{"--source-id"}},
 		{name: "global flag value", args: []string{"jobs", "list", "--output", ""}, want: []string{"text", "json"}},
 		{name: "bool value", args: []string{"job-config", "specs", "--initial-sync", ""}, want: []string{"true", "false"}},
 		{name: "inline bool value", args: []string{"job-config", "specs", "--initial-sync=t"}, want: []string{"--initial-sync=true"}},
+		{name: "datasource add file flag", args: []string{"datasources", "add", "--sec"}, want: []string{"--security-file"}},
+		{name: "worker alert bool value", args: []string{"workers", "update-alert", "5", "--phone", ""}, want: []string{"true", "false"}},
+		{name: "transform job type flag", args: []string{"job-config", "transform-job-type", "--sou"}, want: []string{"--source-type"}},
+		{name: "schemas flag", args: []string{"schemas", "list-trans-objs-by-meta", "--src"}, want: []string{"--src-db", "--src-schema", "--src-trans-obj"}},
 	}
 
 	for _, tc := range testCases {
@@ -56,7 +65,7 @@ func TestCompletionCandidatesSuggestCommandsFlagsAndValues(t *testing.T) {
 
 func TestCompletionCandidatesHideInternalAndAliasCommands(t *testing.T) {
 	candidates := repl.CompletionCandidates([]string{""}, true)
-	for _, hidden := range []string{"clear", "cls", "completion", "jobconfig", "lang", "language", "quit"} {
+	for _, hidden := range []string{"clear", "cls", "completion", "jobconfig", "schema", "lang", "language", "quit"} {
 		if contains(candidates, hidden) {
 			t.Fatalf("completion candidates = %v, should not contain %q", candidates, hidden)
 		}

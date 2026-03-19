@@ -10,6 +10,7 @@ import (
 	"cloudcanal-openapi-cli/internal/i18n"
 	"cloudcanal-openapi-cli/internal/jobconfig"
 	"cloudcanal-openapi-cli/internal/openapi"
+	ccschema "cloudcanal-openapi-cli/internal/schema"
 	"cloudcanal-openapi-cli/internal/worker"
 )
 
@@ -21,6 +22,7 @@ type RuntimeContext interface {
 	Workers() worker.Operations
 	ConsoleJobs() consolejob.Operations
 	JobConfigs() jobconfig.Operations
+	Schemas() ccschema.Operations
 	Reinitialize(io console.IO) (bool, error)
 	SetLanguage(language string) error
 }
@@ -34,6 +36,7 @@ type Runtime struct {
 	workers       worker.Operations
 	consoleJobs   consolejob.Operations
 	jobConfigs    jobconfig.Operations
+	schemas       ccschema.Operations
 }
 
 func NewRuntime(configService *config.Service) *Runtime {
@@ -102,6 +105,10 @@ func (r *Runtime) JobConfigs() jobconfig.Operations {
 	return r.jobConfigs
 }
 
+func (r *Runtime) Schemas() ccschema.Operations {
+	return r.schemas
+}
+
 func (r *Runtime) SetLanguage(language string) error {
 	cfg := r.config
 	cfg.Language = language
@@ -135,5 +142,6 @@ func (r *Runtime) activate(cfg config.AppConfig) error {
 	r.workers = worker.NewService(client)
 	r.consoleJobs = consolejob.NewService(client)
 	r.jobConfigs = jobconfig.NewService(client)
+	r.schemas = ccschema.NewService(client)
 	return nil
 }

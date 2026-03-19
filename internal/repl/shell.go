@@ -113,6 +113,8 @@ func (s *Shell) handleTokens(tokens []string) error {
 		return wrapCommandError(s.handleConsoleJobs(tokens), format)
 	case "job-config", "jobconfig":
 		return wrapCommandError(s.handleJobConfig(tokens), format)
+	case "schemas", "schema":
+		return wrapCommandError(s.handleSchemas(tokens), format)
 	case "config":
 		return wrapCommandError(s.handleConfig(tokens), format)
 	case "lang", "language":

@@ -20,6 +20,23 @@ func (s *Shell) handleJobs(tokens []string) error {
 			return err
 		}
 		return s.printJobs(options)
+	case "create":
+		options, err := parseFlagArgs(tokens[2:])
+		if err != nil {
+			return err
+		}
+		var request datajob.CreateJobRequest
+		if err := decodeBodyOptions(options, &request); err != nil {
+			return err
+		}
+		if err := ensureNoUnknownOptions(options); err != nil {
+			return err
+		}
+		result, err := s.runtime.DataJobs().CreateJob(request)
+		if err != nil {
+			return err
+		}
+		return s.printJobCreateResult(result)
 	case "show":
 		if len(tokens) != 3 {
 			s.io.Println(s.usageJobAction("show"))
@@ -83,6 +100,42 @@ func (s *Shell) handleJobs(tokens []string) error {
 			return err
 		}
 		return s.printActionResult("job.replayed", "job", "replayed", jobID)
+	case "attach-incre-task", "detach-incre-task":
+		if len(tokens) != 3 {
+			s.io.Println(s.usageJobAction(strings.ToLower(tokens[1])))
+			return nil
+		}
+		jobID, err := parsePositiveInt64(tokens[2], "jobId")
+		if err != nil {
+			return err
+		}
+		if strings.EqualFold(tokens[1], "attach-incre-task") {
+			if err := s.runtime.DataJobs().AttachIncreJob(jobID); err != nil {
+				return err
+			}
+			return s.printActionResult("job.increAttached", "job", "attach-incre-task", jobID)
+		}
+		if err := s.runtime.DataJobs().DetachIncreJob(jobID); err != nil {
+			return err
+		}
+		return s.printActionResult("job.increDetached", "job", "detach-incre-task", jobID)
+	case "update-incre-pos":
+		options, err := parseFlagArgs(tokens[2:])
+		if err != nil {
+			return err
+		}
+		var request datajob.UpdateIncrePosRequest
+		if err := decodeBodyOptions(options, &request); err != nil {
+			return err
+		}
+		if err := ensureNoUnknownOptions(options); err != nil {
+			return err
+		}
+		result, err := s.runtime.DataJobs().UpdateIncrePos(request)
+		if err != nil {
+			return err
+		}
+		return s.printUpdateIncrePosResult(request.TaskID, result)
 	default:
 		s.printUnknownSubcommand("jobs", tokens[1], jobsSubcommands, s.usageJobsGroup())
 		return nil
@@ -269,4 +322,47 @@ func sourceSummary(source *datajob.Source) string {
 		return label
 	}
 	return label + " (" + strings.Join(extras, ", ") + ")"
+}
+
+func (s *Shell) printJobCreateResult(result datajob.CreateJobResult) error {
+	message := "Job created successfully"
+	if s.isChinese() {
+		message = "任务创建成功"
+	}
+	if s.isJSONOutput() {
+		return s.printJSON(map[string]any{
+			"resource": "job",
+			"action":   "created",
+			"jobId":    result.JobID,
+			"data":     result.Data,
+			"message":  message,
+		})
+	}
+	s.io.Println(message)
+	if result.JobID != "" {
+		s.io.Println(s.line(s.label("jobId"), result.JobID))
+	}
+	return nil
+}
+
+func (s *Shell) printUpdateIncrePosResult(taskID int64, result datajob.UpdateIncrePosResult) error {
+	message := "Increment position updated successfully"
+	if s.isChinese() {
+		message = "增量位点更新成功"
+	}
+	if s.isJSONOutput() {
+		return s.printJSON(map[string]any{
+			"resource": "task-position",
+			"action":   "updated",
+			"taskId":   taskID,
+			"data":     result.Data,
+			"message":  message,
+		})
+	}
+	s.io.Println(message)
+	s.io.Println(s.line(s.label("taskId"), strconv.FormatInt(taskID, 10)))
+	if result.Data != "" {
+		s.io.Println(s.line(s.label("result"), result.Data))
+	}
+	return nil
 }

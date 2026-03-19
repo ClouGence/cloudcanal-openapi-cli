@@ -35,23 +35,31 @@ func (s *Shell) usageJobsGroup() string {
 		return usageBlock(
 			"用法：",
 			"jobs list",
+			"jobs create --body-file FILE.json",
 			"jobs show <jobId>",
 			"jobs schema <jobId>",
 			"jobs start <jobId>",
 			"jobs stop <jobId>",
 			"jobs delete <jobId>",
 			"jobs replay <jobId> [--auto-start] [--reset-to-created]",
+			"jobs attach-incre-task <jobId>",
+			"jobs detach-incre-task <jobId>",
+			"jobs update-incre-pos --body-file FILE.json",
 		)
 	}
 	return usageBlock(
 		"Usage:",
 		"jobs list",
+		"jobs create --body-file FILE.json",
 		"jobs show <jobId>",
 		"jobs schema <jobId>",
 		"jobs start <jobId>",
 		"jobs stop <jobId>",
 		"jobs delete <jobId>",
 		"jobs replay <jobId> [--auto-start] [--reset-to-created]",
+		"jobs attach-incre-task <jobId>",
+		"jobs detach-incre-task <jobId>",
+		"jobs update-incre-pos --body-file FILE.json",
 	)
 }
 
@@ -60,6 +68,13 @@ func (s *Shell) usageJobsList() string {
 		return "用法：jobs list [--name NAME] [--type TYPE] [--desc DESC] [--source-id ID] [--target-id ID]"
 	}
 	return "Usage: jobs list [--name NAME] [--type TYPE] [--desc DESC] [--source-id ID] [--target-id ID]"
+}
+
+func (s *Shell) usageJobCreate() string {
+	if s.isChinese() {
+		return "用法：jobs create --body-file FILE.json | --body '{...}'"
+	}
+	return "Usage: jobs create --body-file FILE.json | --body '{...}'"
 }
 
 func (s *Shell) usageJobAction(action string) string {
@@ -76,17 +91,28 @@ func (s *Shell) usageJobReplay() string {
 	return "Usage: jobs replay <jobId> [--auto-start] [--reset-to-created]"
 }
 
+func (s *Shell) usageJobUpdateIncrePos() string {
+	if s.isChinese() {
+		return "用法：jobs update-incre-pos --body-file FILE.json | --body '{...}'"
+	}
+	return "Usage: jobs update-incre-pos --body-file FILE.json | --body '{...}'"
+}
+
 func (s *Shell) usageDataSources() string {
 	if s.isChinese() {
 		return usageBlock(
 			"用法：",
 			"datasources list [--id ID] [--type TYPE] [--deploy-type TYPE] [--host-type TYPE] [--lifecycle STATE]",
+			"datasources add --body-file FILE.json [--security-file FILE] [--secret-file FILE]",
+			"datasources delete <dataSourceId>",
 			"datasources show <dataSourceId>",
 		)
 	}
 	return usageBlock(
 		"Usage:",
 		"datasources list [--id ID] [--type TYPE] [--deploy-type TYPE] [--host-type TYPE] [--lifecycle STATE]",
+		"datasources add --body-file FILE.json [--security-file FILE] [--secret-file FILE]",
+		"datasources delete <dataSourceId>",
 		"datasources show <dataSourceId>",
 	)
 }
@@ -103,6 +129,20 @@ func (s *Shell) usageDataSourceShow() string {
 		return "用法：datasources show <dataSourceId>"
 	}
 	return "Usage: datasources show <dataSourceId>"
+}
+
+func (s *Shell) usageDataSourceAdd() string {
+	if s.isChinese() {
+		return "用法：datasources add --body-file FILE.json [--security-file FILE] [--secret-file FILE]"
+	}
+	return "Usage: datasources add --body-file FILE.json [--security-file FILE] [--secret-file FILE]"
+}
+
+func (s *Shell) usageDataSourceAction(action string) string {
+	if s.isChinese() {
+		return fmt.Sprintf("用法：datasources %s <dataSourceId>", action)
+	}
+	return fmt.Sprintf("Usage: datasources %s <dataSourceId>", action)
 }
 
 func (s *Shell) usageClusters() string {
@@ -126,6 +166,9 @@ func (s *Shell) usageWorkers() string {
 			"workers list --cluster-id ID [--source-id ID] [--target-id ID]",
 			"workers start <workerId>",
 			"workers stop <workerId>",
+			"workers delete <workerId>",
+			"workers modify-mem-oversold <workerId> --percent N",
+			"workers update-alert <workerId> --phone=true|false --email=true|false --im=true|false --sms=true|false",
 		)
 	}
 	return usageBlock(
@@ -133,6 +176,9 @@ func (s *Shell) usageWorkers() string {
 		"workers list --cluster-id ID [--source-id ID] [--target-id ID]",
 		"workers start <workerId>",
 		"workers stop <workerId>",
+		"workers delete <workerId>",
+		"workers modify-mem-oversold <workerId> --percent N",
+		"workers update-alert <workerId> --phone=true|false --email=true|false --im=true|false --sms=true|false",
 	)
 }
 
@@ -148,6 +194,20 @@ func (s *Shell) usageWorkerAction(action string) string {
 		return fmt.Sprintf("用法：workers %s <workerId>", action)
 	}
 	return fmt.Sprintf("Usage: workers %s <workerId>", action)
+}
+
+func (s *Shell) usageWorkerModifyMemOverSold() string {
+	if s.isChinese() {
+		return "用法：workers modify-mem-oversold <workerId> --percent N"
+	}
+	return "Usage: workers modify-mem-oversold <workerId> --percent N"
+}
+
+func (s *Shell) usageWorkerUpdateAlert() string {
+	if s.isChinese() {
+		return "用法：workers update-alert <workerId> --phone=true|false --email=true|false --im=true|false --sms=true|false"
+	}
+	return "Usage: workers update-alert <workerId> --phone=true|false --email=true|false --im=true|false --sms=true|false"
 }
 
 func (s *Shell) usageConsoleJobs() string {
@@ -166,9 +226,17 @@ func (s *Shell) usageConsoleJobShow() string {
 
 func (s *Shell) usageJobConfig() string {
 	if s.isChinese() {
-		return "用法：job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]"
+		return usageBlock(
+			"用法：",
+			"job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]",
+			"job-config transform-job-type --source-type TYPE --target-type TYPE",
+		)
 	}
-	return "Usage: job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]"
+	return usageBlock(
+		"Usage:",
+		"job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]",
+		"job-config transform-job-type --source-type TYPE --target-type TYPE",
+	)
 }
 
 func (s *Shell) usageJobConfigSpecs() string {
@@ -176,6 +244,20 @@ func (s *Shell) usageJobConfigSpecs() string {
 		return "用法：job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]"
 	}
 	return "Usage: job-config specs --type TYPE [--initial-sync=true|false] [--short-term-sync=true|false]"
+}
+
+func (s *Shell) usageJobConfigTransform() string {
+	if s.isChinese() {
+		return "用法：job-config transform-job-type --source-type TYPE --target-type TYPE"
+	}
+	return "Usage: job-config transform-job-type --source-type TYPE --target-type TYPE"
+}
+
+func (s *Shell) usageSchemas() string {
+	if s.isChinese() {
+		return "用法：schemas list-trans-objs-by-meta [--src-db NAME] [--src-schema NAME] [--src-trans-obj NAME] [--dst-db NAME] [--dst-schema NAME] [--dst-tran-obj NAME]"
+	}
+	return "Usage: schemas list-trans-objs-by-meta [--src-db NAME] [--src-schema NAME] [--src-trans-obj NAME] [--dst-db NAME] [--dst-schema NAME] [--dst-tran-obj NAME]"
 }
 
 func (s *Shell) usageConfigShow() string {
@@ -217,10 +299,22 @@ func (s *Shell) actionMessage(kind string, id int64) string {
 			return fmt.Sprintf("任务 %d 已删除", id)
 		case "job.replayed":
 			return fmt.Sprintf("任务 %d 已提交重放请求", id)
+		case "job.increAttached":
+			return fmt.Sprintf("任务 %d 已绑定增量任务", id)
+		case "job.increDetached":
+			return fmt.Sprintf("任务 %d 已解绑增量任务", id)
+		case "datasource.deleted":
+			return fmt.Sprintf("数据源 %d 已删除", id)
 		case "worker.started":
 			return fmt.Sprintf("机器 %d 已启动", id)
 		case "worker.stopped":
 			return fmt.Sprintf("机器 %d 已停止", id)
+		case "worker.deleted":
+			return fmt.Sprintf("机器 %d 已删除", id)
+		case "worker.memOverSoldUpdated":
+			return fmt.Sprintf("机器 %d 的内存超卖比例已更新", id)
+		case "worker.alertUpdated":
+			return fmt.Sprintf("机器 %d 的告警配置已更新", id)
 		}
 	}
 	switch kind {
@@ -232,10 +326,22 @@ func (s *Shell) actionMessage(kind string, id int64) string {
 		return fmt.Sprintf("Job %d deleted successfully", id)
 	case "job.replayed":
 		return fmt.Sprintf("Job %d replay requested successfully", id)
+	case "job.increAttached":
+		return fmt.Sprintf("Job %d incremental task attached successfully", id)
+	case "job.increDetached":
+		return fmt.Sprintf("Job %d incremental task detached successfully", id)
+	case "datasource.deleted":
+		return fmt.Sprintf("Data source %d deleted successfully", id)
 	case "worker.started":
 		return fmt.Sprintf("Worker %d started successfully", id)
 	case "worker.stopped":
 		return fmt.Sprintf("Worker %d stopped successfully", id)
+	case "worker.deleted":
+		return fmt.Sprintf("Worker %d deleted successfully", id)
+	case "worker.memOverSoldUpdated":
+		return fmt.Sprintf("Worker %d memory oversold percentage updated successfully", id)
+	case "worker.alertUpdated":
+		return fmt.Sprintf("Worker %d alert config updated successfully", id)
 	default:
 		return ""
 	}
@@ -285,6 +391,8 @@ func (s *Shell) countLabel(kind string, count int) string {
 			return fmt.Sprintf("%d 台机器", count)
 		case "specs":
 			return fmt.Sprintf("%d 条规格", count)
+		case "schemas":
+			return fmt.Sprintf("%d 个对象", count)
 		}
 	}
 	switch kind {
@@ -298,6 +406,8 @@ func (s *Shell) countLabel(kind string, count int) string {
 		return fmt.Sprintf("%d workers", count)
 	case "specs":
 		return fmt.Sprintf("%d specs", count)
+	case "schemas":
+		return fmt.Sprintf("%d transfer objects", count)
 	default:
 		return strconv.Itoa(count)
 	}
@@ -308,6 +418,10 @@ func (s *Shell) label(key string) string {
 		switch key {
 		case "id":
 			return "ID"
+		case "jobId":
+			return "任务 ID"
+		case "jobName":
+			return "任务名"
 		case "name":
 			return "名称"
 		case "type":
@@ -426,12 +540,22 @@ func (s *Shell) label(key string) string {
 			return "任务类型"
 		case "lifecycleState":
 			return "生命周期"
+		case "srcType":
+			return "源类型"
+		case "dstType":
+			return "目标类型"
+		case "result":
+			return "结果"
 		}
 	}
 
 	switch key {
 	case "id":
 		return "ID"
+	case "jobId":
+		return "Job ID"
+	case "jobName":
+		return "Job Name"
 	case "name":
 		return "Name"
 	case "type":
@@ -550,6 +674,12 @@ func (s *Shell) label(key string) string {
 		return "Job Type"
 	case "lifecycleState":
 		return "Lifecycle"
+	case "srcType":
+		return "Source Type"
+	case "dstType":
+		return "Target Type"
+	case "result":
+		return "Result"
 	default:
 		return key
 	}

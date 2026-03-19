@@ -39,8 +39,11 @@ cloudcanal jobs --help
 cloudcanal config lang set zh
 cloudcanal jobs list
 cloudcanal jobs show 123
+cloudcanal jobs create --body-file create-job.json
 cloudcanal datasources list --type MYSQL
+cloudcanal datasources add --body-file add-datasource.json
 cloudcanal workers list --cluster-id 2
+cloudcanal schemas list-trans-objs-by-meta --src-db demo --src-trans-obj orders
 ```
 
 JSON 输出：
@@ -81,6 +84,7 @@ cloudcanal jobs list --type SYNC --output json
 ## 文档入口
 
 - 安装、初始化、命令参数、示例：[docs/cloudcanal-cli-usage.md](docs/cloudcanal-cli-usage.md)
+- SDK API 对照 CLI 命令：[docs/openapi-sdk-api-reference.md](docs/openapi-sdk-api-reference.md)
 - 版本变更记录：[CHANGELOG.md](CHANGELOG.md)
 - 机器可读输出：在查询命令后追加 `--output json`
 - 交互模式和 shell 均支持 TAB 自动补全

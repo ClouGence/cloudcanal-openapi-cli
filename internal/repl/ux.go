@@ -6,12 +6,13 @@ import (
 )
 
 var (
-	jobsSubcommands       = []string{"list", "show", "schema", "start", "stop", "delete", "replay"}
-	dataSourceSubcommands = []string{"list", "show"}
+	jobsSubcommands       = []string{"list", "create", "show", "schema", "start", "stop", "delete", "replay", "attach-incre-task", "detach-incre-task", "update-incre-pos"}
+	dataSourceSubcommands = []string{"list", "add", "delete", "show"}
 	clusterSubcommands    = []string{"list"}
-	workerSubcommands     = []string{"list", "start", "stop"}
+	workerSubcommands     = []string{"list", "start", "stop", "delete", "modify-mem-oversold", "update-alert"}
 	consoleJobSubcommands = []string{"show"}
-	jobConfigSubcommands  = []string{"specs"}
+	jobConfigSubcommands  = []string{"specs", "transform-job-type"}
+	schemaSubcommands     = []string{"list-trans-objs-by-meta"}
 	configSubcommands     = []string{"show", "init", "lang"}
 	langSubcommands       = []string{"show", "set"}
 	completionSubcommands = []string{"zsh", "bash"}
@@ -153,6 +154,8 @@ func RenderCommandHelp(tokens []string) (string, bool) {
 			return shell.helpConsoleJobs(), true
 		case "job-config", "jobconfig":
 			return shell.helpJobConfig(), true
+		case "schemas", "schema":
+			return shell.helpSchemas(), true
 		case "config":
 			return shell.helpConfig(), true
 		case "lang", "language":
@@ -171,10 +174,16 @@ func RenderCommandHelp(tokens []string) (string, bool) {
 		switch strings.ToLower(tokens[1]) {
 		case "list":
 			return shell.usageJobsList(), true
+		case "create":
+			return shell.usageJobCreate(), true
 		case "show", "schema", "start", "stop", "delete":
 			return shell.usageJobAction(strings.ToLower(tokens[1])), true
 		case "replay":
 			return shell.usageJobReplay(), true
+		case "attach-incre-task", "detach-incre-task":
+			return shell.usageJobAction(strings.ToLower(tokens[1])), true
+		case "update-incre-pos":
+			return shell.usageJobUpdateIncrePos(), true
 		default:
 			return shell.helpJobs(), true
 		}
@@ -182,6 +191,10 @@ func RenderCommandHelp(tokens []string) (string, bool) {
 		switch strings.ToLower(tokens[1]) {
 		case "list":
 			return shell.usageDataSourcesList(), true
+		case "add":
+			return shell.usageDataSourceAdd(), true
+		case "delete":
+			return shell.usageDataSourceAction("delete"), true
 		case "show":
 			return shell.usageDataSourceShow(), true
 		default:
@@ -196,8 +209,12 @@ func RenderCommandHelp(tokens []string) (string, bool) {
 		switch strings.ToLower(tokens[1]) {
 		case "list":
 			return shell.usageWorkersList(), true
-		case "start", "stop":
+		case "start", "stop", "delete":
 			return shell.usageWorkerAction(strings.ToLower(tokens[1])), true
+		case "modify-mem-oversold":
+			return shell.usageWorkerModifyMemOverSold(), true
+		case "update-alert":
+			return shell.usageWorkerUpdateAlert(), true
 		default:
 			return shell.helpWorkers(), true
 		}
@@ -210,7 +227,15 @@ func RenderCommandHelp(tokens []string) (string, bool) {
 		if strings.EqualFold(tokens[1], "specs") {
 			return shell.usageJobConfigSpecs(), true
 		}
+		if strings.EqualFold(tokens[1], "transform-job-type") {
+			return shell.usageJobConfigTransform(), true
+		}
 		return shell.helpJobConfig(), true
+	case "schemas", "schema":
+		if strings.EqualFold(tokens[1], "list-trans-objs-by-meta") {
+			return shell.usageSchemas(), true
+		}
+		return shell.helpSchemas(), true
 	case "config":
 		switch strings.ToLower(tokens[1]) {
 		case "show":

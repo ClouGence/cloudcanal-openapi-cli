@@ -16,7 +16,10 @@ cloudcanal
 cloudcanal --help
 cloudcanal jobs --help
 cloudcanal jobs list
+cloudcanal jobs create --body-file create-job.json
 cloudcanal datasources list --type MYSQL
+cloudcanal datasources add --body-file add-datasource.json
+cloudcanal schemas list-trans-objs-by-meta --src-db demo --src-trans-obj orders
 cloudcanal jobs list --type SYNC --output json
 ```
 
@@ -92,6 +95,7 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 - `help workers`
 - `help consolejobs`
 - `help job-config`
+- `help schemas`
 - `help config`
 
 绝大多数命令组也支持 `--help`，例如：
@@ -101,6 +105,21 @@ cloudcanal jobs --help
 cloudcanal jobs list --help
 cloudcanal config --help
 ```
+
+## 复杂请求体
+
+对于和 SDK 一一对应、字段较多的接口，CLI 统一支持：
+
+- `--body '{...}'`: 直接传 JSON
+- `--body-file FILE.json`: 从文件读取 JSON
+
+目前主要用于：
+
+- `jobs create`
+- `jobs update-incre-pos`
+- `datasources add`
+
+完整字段说明见 [openapi-sdk-api-reference.md](openapi-sdk-api-reference.md)。
 
 `config show`
 
@@ -147,6 +166,10 @@ cloudcanal jobs list --type SYNC --output json
 
 查看任务详情。
 
+`jobs create --body-file FILE.json`
+
+按 SDK `AddJobRequest` 的字段创建任务，也支持 `--body '{...}'`。
+
 `jobs schema <jobId>`
 
 查看任务 schema 信息。
@@ -176,6 +199,18 @@ cloudcanal jobs list --type SYNC --output json
 cloudcanal jobs replay 123 --auto-start --reset-to-created
 ```
 
+`jobs attach-incre-task <jobId>`
+
+绑定增量任务。
+
+`jobs detach-incre-task <jobId>`
+
+解绑增量任务。
+
+`jobs update-incre-pos --body-file FILE.json`
+
+按 SDK `UpdateIncrePosRequest` 的字段更新增量位点，也支持 `--body '{...}'`。
+
 ## DataSource
 
 `datasources list [参数]`
@@ -197,6 +232,17 @@ cloudcanal datasources list --type MYSQL --deploy-type ALIYUN
 `datasources show <dataSourceId>`
 
 查看单个数据源详情。
+
+`datasources add --body-file FILE.json [--security-file FILE] [--secret-file FILE]`
+
+创建数据源。`--body-file` 支持两种格式：
+
+- 直接传 `ApiDsAddData` JSON
+- 传带 `dataSourceAddData` 包装层的完整请求 JSON
+
+`datasources delete <dataSourceId>`
+
+删除数据源。
 
 ## Cluster
 
@@ -239,6 +285,18 @@ cloudcanal workers list --cluster-id 2
 
 停止机器。
 
+`workers delete <workerId>`
+
+删除机器。
+
+`workers modify-mem-oversold <workerId> --percent N`
+
+修改机器内存超卖比例。
+
+`workers update-alert <workerId> --phone=true|false --email=true|false --im=true|false --sms=true|false`
+
+更新机器告警开关。
+
 ## ConsoleJob
 
 `consolejobs show <consoleJobId>`
@@ -259,6 +317,29 @@ cloudcanal workers list --cluster-id 2
 
 ```bash
 cloudcanal job-config specs --type SYNC --initial-sync=true
+```
+
+`job-config transform-job-type --source-type TYPE --target-type TYPE`
+
+根据源端和目标端类型转换任务类型。
+
+## Schema
+
+`schemas list-trans-objs-by-meta [参数]`
+
+按元信息查询传输对象，支持：
+
+- `--src-db <name>`
+- `--src-schema <name>`
+- `--src-trans-obj <name>`
+- `--dst-db <name>`
+- `--dst-schema <name>`
+- `--dst-tran-obj <name>`
+
+示例：
+
+```bash
+cloudcanal schemas list-trans-objs-by-meta --src-db demo --src-trans-obj orders
 ```
 
 ## 使用建议

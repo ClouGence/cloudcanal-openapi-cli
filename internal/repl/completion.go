@@ -24,6 +24,7 @@ var (
 		"workers",
 		"consolejobs",
 		"job-config",
+		"schemas",
 		"config",
 	}
 	visibleReplOnlyCommands = []string{"exit"}
@@ -34,6 +35,7 @@ var (
 		"workers",
 		"consolejobs",
 		"job-config",
+		"schemas",
 		"config",
 	}
 	boolValues   = []string{"true", "false"}
@@ -154,6 +156,11 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 				{name: "--source-id"},
 				{name: "--target-id"},
 			}))
+		case "create", "update-incre-pos":
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
+				{name: "--body"},
+				{name: "--body-file"},
+			}))
 		case "replay":
 			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
 				{name: "--auto-start", values: boolValues},
@@ -172,6 +179,14 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 				{name: "--deploy-type"},
 				{name: "--host-type"},
 				{name: "--lifecycle"},
+			}))
+		}
+		if strings.EqualFold(context[1], "add") {
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
+				{name: "--body"},
+				{name: "--body-file"},
+				{name: "--security-file"},
+				{name: "--secret-file"},
 			}))
 		}
 		return nil
@@ -199,6 +214,19 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 				{name: "--target-id"},
 			}))
 		}
+		if strings.EqualFold(context[1], "modify-mem-oversold") {
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
+				{name: "--percent"},
+			}))
+		}
+		if strings.EqualFold(context[1], "update-alert") {
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
+				{name: "--phone", values: boolValues},
+				{name: "--email", values: boolValues},
+				{name: "--im", values: boolValues},
+				{name: "--sms", values: boolValues},
+			}))
+		}
 		return nil
 	case "consolejobs":
 		if len(context) == 1 {
@@ -214,6 +242,27 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 				{name: "--type"},
 				{name: "--initial-sync", values: boolValues},
 				{name: "--short-term-sync", values: boolValues},
+			}))
+		}
+		if strings.EqualFold(context[1], "transform-job-type") {
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
+				{name: "--source-type"},
+				{name: "--target-type"},
+			}))
+		}
+		return nil
+	case "schemas", "schema":
+		if len(context) == 1 {
+			return matchCandidates(append(append([]string{}, schemaSubcommands...), "--help"), prefix)
+		}
+		if strings.EqualFold(context[1], "list-trans-objs-by-meta") {
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
+				{name: "--src-db"},
+				{name: "--src-schema"},
+				{name: "--src-trans-obj"},
+				{name: "--dst-db"},
+				{name: "--dst-schema"},
+				{name: "--dst-tran-obj"},
 			}))
 		}
 		return nil

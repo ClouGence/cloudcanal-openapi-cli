@@ -68,6 +68,14 @@ func (c *Client) PostJSON(path string, payload any, out any) error {
 	return c.PostJSONWithOptions(path, payload, out, RequestOptions{})
 }
 
+func (c *Client) HTTPClient() *http.Client {
+	return c.httpClient
+}
+
+func (c *Client) SignedURL(path string) string {
+	return c.fullURL(path)
+}
+
 func (c *Client) PostJSONWithOptions(path string, payload any, out any, options RequestOptions) error {
 	bodyValue := payload
 	if bodyValue == nil {

@@ -154,6 +154,18 @@ func parseBoolOption(options map[string]string, fieldName string, names ...strin
 	return &parsed, nil
 }
 
+func parseRequiredBoolOption(options map[string]string, fieldName string, names ...string) (bool, error) {
+	value, ok := popOption(options, names...)
+	if !ok || strings.TrimSpace(value) == "" {
+		return false, errors.New(i18n.T("parser.optionRequired", fieldLabel(fieldName)))
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, errors.New(i18n.T("parser.mustBeBoolean", fieldLabel(fieldName)))
+	}
+	return parsed, nil
+}
+
 func formatOptionalInt64(value int64) string {
 	if value == 0 {
 		return "-"

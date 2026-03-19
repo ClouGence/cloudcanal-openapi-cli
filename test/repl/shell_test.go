@@ -11,6 +11,7 @@ import (
 	"cloudcanal-openapi-cli/internal/i18n"
 	"cloudcanal-openapi-cli/internal/jobconfig"
 	"cloudcanal-openapi-cli/internal/repl"
+	ccschema "cloudcanal-openapi-cli/internal/schema"
 	"cloudcanal-openapi-cli/internal/worker"
 	"cloudcanal-openapi-cli/test/testsupport"
 	"encoding/json"
@@ -62,12 +63,15 @@ func TestShellHandlesHappyPathCommands(t *testing.T) {
 			DefaultTopicPartition: 8,
 			SchemaWhiteListLevel:  "TABLE",
 		},
+		createResult:         datajob.CreateJobResult{JobID: "99", Data: "99"},
+		updateIncrePosResult: datajob.UpdateIncrePosResult{Data: "updated"},
 	}
 	dataSources := &fakeDataSources{
 		list: []datasource.DataSource{
 			{ID: 7, InstanceID: "cc-mysql-1", DataSourceType: "MYSQL", HostType: "RDS", DeployType: "ALIYUN", LifeCycleState: "ACTIVE", InstanceDesc: "mysql source"},
 		},
-		item: datasource.DataSource{ID: 7, InstanceID: "cc-mysql-1", DataSourceType: "MYSQL", HostType: "RDS", DeployType: "ALIYUN", LifeCycleState: "ACTIVE", InstanceDesc: "mysql source"},
+		item:      datasource.DataSource{ID: 7, InstanceID: "cc-mysql-1", DataSourceType: "MYSQL", HostType: "RDS", DeployType: "ALIYUN", LifeCycleState: "ACTIVE", InstanceDesc: "mysql source"},
+		addResult: "ds-77",
 	}
 	clusters := &fakeClusters{
 		list: []cluster.Cluster{
@@ -97,6 +101,12 @@ func TestShellHandlesHappyPathCommands(t *testing.T) {
 		specs: []jobconfig.Spec{
 			{ID: 1, SpecKind: "SYNC", SpecKindCN: "同步", Spec: "STANDARD", FullMemoryMB: 2048, IncreMemoryMB: 1024, CheckMemoryMB: 512},
 		},
+		transformResult: jobconfig.TransformJobTypeResponse{Data: json.RawMessage(`{"normalized":"SYNC"}`)},
+	}
+	schemas := &fakeSchemas{
+		items: []ccschema.ApiTransferObjIndexDO{
+			{DataJobID: 11, DataJobName: "sync-job", SrcFullTransferObjName: "demo.orders", DstFullTransferObjName: "dw.orders", SrcDsType: "MYSQL", DstDsType: "STARROCKS"},
+		},
 	}
 
 	runtime := &fakeRuntime{
@@ -107,24 +117,36 @@ func TestShellHandlesHappyPathCommands(t *testing.T) {
 		workers:     workers,
 		consoleJobs: consoleJobs,
 		jobConfigs:  jobConfigs,
+		schemas:     schemas,
 	}
 	io := testsupport.NewTestConsole(
 		"help jobs",
 		`jobs list --name sync-job --type SYNC --desc "nightly sync" --source-id 101 --target-id 202`,
+		`jobs create --body '{"clusterId":1,"srcDsId":101,"dstDsId":202,"jobType":"SYNC","dataJobDesc":"sdk job"}'`,
 		"jobs show 11",
 		"jobs schema 11",
 		"jobs replay 11 --auto-start --reset-to-created",
+		"jobs attach-incre-task 11",
+		"jobs detach-incre-task 11",
+		`jobs update-incre-pos --body '{"taskId":101,"posType":"MYSQL_LOG_FILE_POS","journalFile":"binlog.000001"}'`,
 		"jobs start 11",
 		"jobs stop 11",
 		"jobs delete 11",
 		"datasources list --type MYSQL",
+		`datasources add --body '{"type":"MYSQL","host":"127.0.0.1:3306","instanceDesc":"mysql source"}'`,
+		"datasources delete 7",
 		"datasources show 7",
 		"clusters list --name prod",
 		"workers list --cluster-id 2",
 		"workers start 5",
 		"workers stop 5",
+		"workers delete 5",
+		"workers modify-mem-oversold 5 --percent 120",
+		"workers update-alert 5 --phone=true --email=false --im=true --sms=false",
 		"consolejobs show 21",
 		"job-config specs --type SYNC --initial-sync=true --short-term-sync=false",
+		"job-config transform-job-type --source-type MYSQL --target-type STARROCKS",
+		"schemas list-trans-objs-by-meta --src-db demo --src-trans-obj orders",
 		"config lang show",
 		"config lang set zh",
 		"config lang set en",
@@ -141,11 +163,20 @@ func TestShellHandlesHappyPathCommands(t *testing.T) {
 	if dataJobs.lastStartedJobID != 11 || dataJobs.lastStoppedJobID != 11 || dataJobs.lastDeletedJobID != 11 || dataJobs.lastReplayedJobID != 11 {
 		t.Fatalf("unexpected job actions: start=%d stop=%d delete=%d replay=%d", dataJobs.lastStartedJobID, dataJobs.lastStoppedJobID, dataJobs.lastDeletedJobID, dataJobs.lastReplayedJobID)
 	}
-	if workers.lastStartedWorkerID != 5 || workers.lastStoppedWorkerID != 5 {
-		t.Fatalf("unexpected worker actions: start=%d stop=%d", workers.lastStartedWorkerID, workers.lastStoppedWorkerID)
+	if workers.lastStartedWorkerID != 5 || workers.lastStoppedWorkerID != 5 || workers.lastDeletedWorkerID != 5 {
+		t.Fatalf("unexpected worker actions: start=%d stop=%d delete=%d", workers.lastStartedWorkerID, workers.lastStoppedWorkerID, workers.lastDeletedWorkerID)
 	}
 	if !dataJobs.lastReplayOptions.AutoStart || !dataJobs.lastReplayOptions.ResetToCreated {
 		t.Fatalf("unexpected replay options: %+v", dataJobs.lastReplayOptions)
+	}
+	if dataJobs.lastCreatedJob.ClusterID != 1 || dataJobs.lastCreatedJob.JobType != "SYNC" || dataJobs.lastCreatedJob.DataJobDesc != "sdk job" {
+		t.Fatalf("unexpected create job request: %+v", dataJobs.lastCreatedJob)
+	}
+	if dataJobs.lastAttachedIncreJobID != 11 || dataJobs.lastDetachedIncreJobID != 11 {
+		t.Fatalf("unexpected incre task actions: attach=%d detach=%d", dataJobs.lastAttachedIncreJobID, dataJobs.lastDetachedIncreJobID)
+	}
+	if dataJobs.lastUpdateIncrePos.TaskID != 101 || dataJobs.lastUpdateIncrePos.PosType != "MYSQL_LOG_FILE_POS" {
+		t.Fatalf("unexpected incre pos update: %+v", dataJobs.lastUpdateIncrePos)
 	}
 	if dataJobs.lastListOptions.DataJobName != "sync-job" || dataJobs.lastListOptions.Desc != "nightly sync" || dataJobs.lastListOptions.SourceInstanceID != 101 || dataJobs.lastListOptions.TargetInstanceID != 202 {
 		t.Fatalf("unexpected list options: %+v", dataJobs.lastListOptions)
@@ -153,37 +184,65 @@ func TestShellHandlesHappyPathCommands(t *testing.T) {
 	if dataSources.lastListOptions.Type != "MYSQL" {
 		t.Fatalf("unexpected datasource list options: %+v", dataSources.lastListOptions)
 	}
+	if dataSources.lastAddOptions.DataSourceAddData.Type != "MYSQL" || dataSources.lastDeletedID != 7 {
+		t.Fatalf("unexpected datasource actions: add=%+v delete=%d", dataSources.lastAddOptions, dataSources.lastDeletedID)
+	}
 	if clusters.lastListOptions.ClusterName != "prod" {
 		t.Fatalf("unexpected cluster list options: %+v", clusters.lastListOptions)
 	}
 	if workers.lastListOptions.ClusterID != 2 {
 		t.Fatalf("unexpected worker list options: %+v", workers.lastListOptions)
 	}
+	if workers.lastMemOverSoldWorkerID != 5 || workers.lastMemOverSoldPercent != 120 {
+		t.Fatalf("unexpected mem oversold update: worker=%d percent=%d", workers.lastMemOverSoldWorkerID, workers.lastMemOverSoldPercent)
+	}
+	if workers.lastAlertWorkerID != 5 || !workers.lastAlertPhone || workers.lastAlertEmail || !workers.lastAlertIM || workers.lastAlertSMS {
+		t.Fatalf("unexpected worker alert update: worker=%d phone=%v email=%v im=%v sms=%v", workers.lastAlertWorkerID, workers.lastAlertPhone, workers.lastAlertEmail, workers.lastAlertIM, workers.lastAlertSMS)
+	}
 	if jobConfigs.lastOptions.DataJobType != "SYNC" || jobConfigs.lastOptions.InitialSync == nil || !*jobConfigs.lastOptions.InitialSync || jobConfigs.lastOptions.ShortTermSync == nil || *jobConfigs.lastOptions.ShortTermSync {
 		t.Fatalf("unexpected job config options: %+v", jobConfigs.lastOptions)
+	}
+	if jobConfigs.lastTransformOption.SourceType != "MYSQL" || jobConfigs.lastTransformOption.TargetType != "STARROCKS" {
+		t.Fatalf("unexpected transform job type options: %+v", jobConfigs.lastTransformOption)
+	}
+	if schemas.lastOptions.SrcDb != "demo" || schemas.lastOptions.SrcTransObj != "orders" {
+		t.Fatalf("unexpected schema list options: %+v", schemas.lastOptions)
 	}
 
 	for _, want := range []string{
 		"jobs commands",
 		"--name       Filter by data job name.",
 		"sync-job",
+		"Job created successfully",
+		"Job ID",
 		"Job details:",
 		"nightly sync",
 		"Job schema:",
 		"topic-a",
 		"Job 11 replay requested successfully",
+		"Job 11 incremental task attached successfully",
+		"Job 11 incremental task detached successfully",
+		"Increment position updated successfully",
 		"Job 11 started successfully",
 		"Job 11 stopped successfully",
 		"Job 11 deleted successfully",
 		"mysql source",
+		"Data source created successfully",
+		"Data source 7 deleted successfully",
 		"Data source details:",
 		"prod-cluster",
 		"worker-1",
 		"Worker 5 started successfully",
 		"Worker 5 stopped successfully",
+		"Worker 5 deleted successfully",
+		"Worker 5 memory oversold percentage updated successfully",
+		"Worker 5 alert config updated successfully",
 		"Console job details:",
 		"WORKER_INSTALL",
 		"STANDARD",
+		"Transform job type result:",
+		"normalized",
+		"demo.orders",
 		"Current language: en",
 		"语言已切换为 中文。",
 		"Language switched to English.",
@@ -623,6 +682,7 @@ type fakeRuntime struct {
 	workers           worker.Operations
 	consoleJobs       consolejob.Operations
 	jobConfigs        jobconfig.Operations
+	schemas           ccschema.Operations
 	reinitializeCalls int
 	reinitializeValue bool
 }
@@ -687,6 +747,10 @@ func (f *fakeRuntime) JobConfigs() jobconfig.Operations {
 	return f.jobConfigs
 }
 
+func (f *fakeRuntime) Schemas() ccschema.Operations {
+	return f.schemas
+}
+
 func (f *fakeRuntime) Reinitialize(io console.IO) (bool, error) {
 	f.reinitializeCalls++
 	return f.reinitializeValue, nil
@@ -701,15 +765,21 @@ func (f *fakeRuntime) SetLanguage(language string) error {
 var _ app.RuntimeContext = (*fakeRuntime)(nil)
 
 type fakeDataJobs struct {
-	jobs              []datajob.Job
-	job               datajob.Job
-	schema            datajob.JobSchema
-	lastListOptions   datajob.ListOptions
-	lastStartedJobID  int64
-	lastStoppedJobID  int64
-	lastDeletedJobID  int64
-	lastReplayedJobID int64
-	lastReplayOptions datajob.ReplayOptions
+	jobs                   []datajob.Job
+	job                    datajob.Job
+	schema                 datajob.JobSchema
+	createResult           datajob.CreateJobResult
+	updateIncrePosResult   datajob.UpdateIncrePosResult
+	lastListOptions        datajob.ListOptions
+	lastCreatedJob         datajob.CreateJobRequest
+	lastStartedJobID       int64
+	lastStoppedJobID       int64
+	lastDeletedJobID       int64
+	lastReplayedJobID      int64
+	lastAttachedIncreJobID int64
+	lastDetachedIncreJobID int64
+	lastUpdateIncrePos     datajob.UpdateIncrePosRequest
+	lastReplayOptions      datajob.ReplayOptions
 }
 
 func (f *fakeDataJobs) ListJobs(options datajob.ListOptions) ([]datajob.Job, error) {
@@ -723,6 +793,11 @@ func (f *fakeDataJobs) GetJob(jobID int64) (datajob.Job, error) {
 
 func (f *fakeDataJobs) GetJobSchema(jobID int64) (datajob.JobSchema, error) {
 	return f.schema, nil
+}
+
+func (f *fakeDataJobs) CreateJob(request datajob.CreateJobRequest) (datajob.CreateJobResult, error) {
+	f.lastCreatedJob = request
+	return f.createResult, nil
 }
 
 func (f *fakeDataJobs) StartJob(jobID int64) error {
@@ -746,11 +821,29 @@ func (f *fakeDataJobs) ReplayJob(jobID int64, options datajob.ReplayOptions) err
 	return nil
 }
 
+func (f *fakeDataJobs) AttachIncreJob(jobID int64) error {
+	f.lastAttachedIncreJobID = jobID
+	return nil
+}
+
+func (f *fakeDataJobs) DetachIncreJob(jobID int64) error {
+	f.lastDetachedIncreJobID = jobID
+	return nil
+}
+
+func (f *fakeDataJobs) UpdateIncrePos(request datajob.UpdateIncrePosRequest) (datajob.UpdateIncrePosResult, error) {
+	f.lastUpdateIncrePos = request
+	return f.updateIncrePosResult, nil
+}
+
 type fakeDataSources struct {
 	list            []datasource.DataSource
 	item            datasource.DataSource
+	addResult       string
 	lastListOptions datasource.ListOptions
+	lastAddOptions  datasource.AddOptions
 	lastGetID       int64
+	lastDeletedID   int64
 }
 
 func (f *fakeDataSources) List(options datasource.ListOptions) ([]datasource.DataSource, error) {
@@ -761,6 +854,16 @@ func (f *fakeDataSources) List(options datasource.ListOptions) ([]datasource.Dat
 func (f *fakeDataSources) Get(dataSourceID int64) (datasource.DataSource, error) {
 	f.lastGetID = dataSourceID
 	return f.item, nil
+}
+
+func (f *fakeDataSources) Add(options datasource.AddOptions) (string, error) {
+	f.lastAddOptions = options
+	return f.addResult, nil
+}
+
+func (f *fakeDataSources) Delete(dataSourceID int64) error {
+	f.lastDeletedID = dataSourceID
+	return nil
 }
 
 type fakeClusters struct {
@@ -774,10 +877,18 @@ func (f *fakeClusters) List(options cluster.ListOptions) ([]cluster.Cluster, err
 }
 
 type fakeWorkers struct {
-	list                []worker.Worker
-	lastListOptions     worker.ListOptions
-	lastStartedWorkerID int64
-	lastStoppedWorkerID int64
+	list                    []worker.Worker
+	lastListOptions         worker.ListOptions
+	lastStartedWorkerID     int64
+	lastStoppedWorkerID     int64
+	lastDeletedWorkerID     int64
+	lastMemOverSoldWorkerID int64
+	lastMemOverSoldPercent  int
+	lastAlertWorkerID       int64
+	lastAlertPhone          bool
+	lastAlertEmail          bool
+	lastAlertIM             bool
+	lastAlertSMS            bool
 }
 
 func (f *fakeWorkers) List(options worker.ListOptions) ([]worker.Worker, error) {
@@ -795,6 +906,26 @@ func (f *fakeWorkers) Stop(workerID int64) error {
 	return nil
 }
 
+func (f *fakeWorkers) Delete(workerID int64) error {
+	f.lastDeletedWorkerID = workerID
+	return nil
+}
+
+func (f *fakeWorkers) ModifyMemOverSold(workerID int64, memOverSoldPercent int) error {
+	f.lastMemOverSoldWorkerID = workerID
+	f.lastMemOverSoldPercent = memOverSoldPercent
+	return nil
+}
+
+func (f *fakeWorkers) UpdateWorkerAlert(workerID int64, phone, email, im, sms bool) error {
+	f.lastAlertWorkerID = workerID
+	f.lastAlertPhone = phone
+	f.lastAlertEmail = email
+	f.lastAlertIM = im
+	f.lastAlertSMS = sms
+	return nil
+}
+
 type fakeConsoleJobs struct {
 	job       consolejob.Job
 	lastGetID int64
@@ -806,11 +937,28 @@ func (f *fakeConsoleJobs) Get(consoleJobID int64) (consolejob.Job, error) {
 }
 
 type fakeJobConfigs struct {
-	specs       []jobconfig.Spec
-	lastOptions jobconfig.ListSpecsOptions
+	specs               []jobconfig.Spec
+	transformResult     jobconfig.TransformJobTypeResponse
+	lastOptions         jobconfig.ListSpecsOptions
+	lastTransformOption jobconfig.TransformJobTypeOptions
 }
 
 func (f *fakeJobConfigs) ListSpecs(options jobconfig.ListSpecsOptions) ([]jobconfig.Spec, error) {
 	f.lastOptions = options
 	return f.specs, nil
+}
+
+func (f *fakeJobConfigs) TransformJobType(options jobconfig.TransformJobTypeOptions) (jobconfig.TransformJobTypeResponse, error) {
+	f.lastTransformOption = options
+	return f.transformResult, nil
+}
+
+type fakeSchemas struct {
+	items       []ccschema.ApiTransferObjIndexDO
+	lastOptions ccschema.ListTransObjsByMetaOptions
+}
+
+func (f *fakeSchemas) ListTransObjsByMeta(options ccschema.ListTransObjsByMetaOptions) ([]ccschema.ApiTransferObjIndexDO, error) {
+	f.lastOptions = options
+	return f.items, nil
 }

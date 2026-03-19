@@ -8,6 +8,7 @@ import (
 	"cloudcanal-openapi-cli/internal/datasource"
 	"cloudcanal-openapi-cli/internal/jobconfig"
 	"cloudcanal-openapi-cli/internal/repl"
+	ccschema "cloudcanal-openapi-cli/internal/schema"
 	"cloudcanal-openapi-cli/internal/worker"
 	"cloudcanal-openapi-cli/test/testsupport"
 	"strings"
@@ -30,6 +31,7 @@ func TestTabularCommandsAlignMixedWidthOutput(t *testing.T) {
 		{name: "workers list", args: []string{"workers", "list", "--cluster-id", "1"}},
 		{name: "consolejobs show", args: []string{"consolejobs", "show", "21"}},
 		{name: "job-config specs", args: []string{"job-config", "specs", "--type", "SYNC"}},
+		{name: "schemas list", args: []string{"schemas", "list-trans-objs-by-meta", "--src-db", "demo"}},
 	}
 
 	for _, tc := range testCases {
@@ -175,6 +177,11 @@ func newAlignmentRuntime() *fakeRuntime {
 		jobConfigs: &fakeJobConfigs{
 			specs: []jobconfig.Spec{
 				{ID: 1, SpecKind: "SYNC", SpecKindCN: "同步规格", Spec: "STANDARD", FullMemoryMB: 2048, IncreMemoryMB: 1024, CheckMemoryMB: 512},
+			},
+		},
+		schemas: &fakeSchemas{
+			items: []ccschema.ApiTransferObjIndexDO{
+				{DataJobID: 11, DataJobName: "同步任务A", SrcFullTransferObjName: "源库.orders", DstFullTransferObjName: "目标库.orders", SrcDsType: "MYSQL", DstDsType: "STARROCKS"},
 			},
 		},
 	}
