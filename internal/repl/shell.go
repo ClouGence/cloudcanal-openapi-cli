@@ -31,8 +31,7 @@ func (s *Shell) ExecuteArgs(args []string) error {
 	if len(args) == 0 {
 		return nil
 	}
-	commandLine := strings.Join(args, " ")
-	return s.handleTokens(args, commandLine)
+	return s.handleTokens(args)
 }
 
 func (s *Shell) Run() error {
@@ -66,10 +65,10 @@ func (s *Shell) handle(commandLine string) error {
 	if err != nil {
 		return err
 	}
-	return s.handleTokens(tokens, commandLine)
+	return s.handleTokens(tokens)
 }
 
-func (s *Shell) handleTokens(tokens []string, commandLine string) error {
+func (s *Shell) handleTokens(tokens []string) error {
 	filteredTokens, format, err := extractOutputFormat(tokens)
 	if err != nil {
 		return wrapCommandError(err, outputText)
@@ -84,10 +83,12 @@ func (s *Shell) handleTokens(tokens []string, commandLine string) error {
 		s.outputFormat = previousFormat
 	}()
 
-	switch strings.ToLower(tokens[0]) {
-	case "help":
-		s.printHelp(tokens[1:])
+	if helpText, ok := RenderCommandHelp(tokens); ok {
+		s.io.Println(helpText)
 		return nil
+	}
+
+	switch strings.ToLower(tokens[0]) {
 	case "clear", "cls":
 		s.io.ClearScreen()
 		return nil
@@ -113,8 +114,7 @@ func (s *Shell) handleTokens(tokens []string, commandLine string) error {
 	case "lang", "language":
 		return wrapCommandError(s.handleLang(tokens), format)
 	default:
-		s.io.Println(i18n.T("common.unknownCommand", commandLine))
-		s.io.Println(i18n.T("common.useHelp"))
+		s.printUnknownCommand(tokens[0])
 		return nil
 	}
 }
@@ -154,7 +154,7 @@ func (s *Shell) handleConfig(tokens []string) error {
 		}
 		return nil
 	default:
-		s.io.Println(s.usageConfig())
+		s.printUnknownSubcommand("config", tokens[1], configSubcommands, s.usageConfig())
 		return nil
 	}
 }
@@ -192,6 +192,6 @@ func (s *Shell) handleLang(tokens []string) error {
 		s.io.Println(i18n.T("lang.updated", i18n.DisplayName(s.runtime.Config().NormalizedLanguage())))
 		return nil
 	}
-	s.io.Println(i18n.T("lang.usage"))
+	s.printUnknownSubcommand("lang", tokens[1], langSubcommands, i18n.T("lang.usage"))
 	return nil
 }

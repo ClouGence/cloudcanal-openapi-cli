@@ -108,7 +108,7 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 			candidates = append(candidates, visibleReplOnlyCommands...)
 		}
 		if prefix == "" || strings.HasPrefix(prefix, "--") {
-			candidates = append(candidates, "--output")
+			candidates = append(candidates, "--help", "--output")
 		}
 		return matchCandidates(candidates, prefix)
 	}
@@ -119,12 +119,12 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 		return matchCandidates(visibleHelpTopics, prefix)
 	case "completion":
 		if len(context) == 1 {
-			return matchCandidates([]string{"zsh", "bash"}, prefix)
+			return matchCandidates(append(append([]string{}, completionSubcommands...), "--help"), prefix)
 		}
 		return nil
 	case "lang", "language":
 		if len(context) == 1 {
-			return matchCandidates([]string{"show", "set"}, prefix)
+			return matchCandidates(append(append([]string{}, langSubcommands...), "--help"), prefix)
 		}
 		if strings.EqualFold(context[1], "set") {
 			return matchCandidates([]string{"en", "zh"}, prefix)
@@ -132,12 +132,12 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 		return nil
 	case "config":
 		if len(context) == 1 {
-			return matchCandidates([]string{"show", "init"}, prefix)
+			return matchCandidates(append(append([]string{}, configSubcommands...), "--help"), prefix)
 		}
 		return nil
 	case "jobs":
 		if len(context) == 1 {
-			return matchCandidates([]string{"list", "show", "schema", "start", "stop", "delete", "replay"}, prefix)
+			return matchCandidates(append(append([]string{}, jobsSubcommands...), "--help"), prefix)
 		}
 		switch strings.ToLower(context[1]) {
 		case "list":
@@ -157,7 +157,7 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 		return nil
 	case "datasources":
 		if len(context) == 1 {
-			return matchCandidates([]string{"list", "show"}, prefix)
+			return matchCandidates(append(append([]string{}, dataSourceSubcommands...), "--help"), prefix)
 		}
 		if strings.EqualFold(context[1], "list") {
 			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
@@ -171,7 +171,7 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 		return nil
 	case "clusters":
 		if len(context) == 1 {
-			return matchCandidates([]string{"list"}, prefix)
+			return matchCandidates(append(append([]string{}, clusterSubcommands...), "--help"), prefix)
 		}
 		if strings.EqualFold(context[1], "list") {
 			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
@@ -184,7 +184,7 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 		return nil
 	case "workers":
 		if len(context) == 1 {
-			return matchCandidates([]string{"list", "start", "stop"}, prefix)
+			return matchCandidates(append(append([]string{}, workerSubcommands...), "--help"), prefix)
 		}
 		if strings.EqualFold(context[1], "list") {
 			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
@@ -196,12 +196,12 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 		return nil
 	case "consolejobs":
 		if len(context) == 1 {
-			return matchCandidates([]string{"show"}, prefix)
+			return matchCandidates(append(append([]string{}, consoleJobSubcommands...), "--help"), prefix)
 		}
 		return nil
 	case "job-config", "jobconfig":
 		if len(context) == 1 {
-			return matchCandidates([]string{"specs"}, prefix)
+			return matchCandidates(append(append([]string{}, jobConfigSubcommands...), "--help"), prefix)
 		}
 		if strings.EqualFold(context[1], "specs") {
 			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
@@ -247,8 +247,9 @@ func completeFlags(args []string, prefix string, specs []flagSpec) []string {
 }
 
 func withGlobalFlags(specs []flagSpec) []flagSpec {
-	combined := make([]flagSpec, 0, len(specs)+1)
+	combined := make([]flagSpec, 0, len(specs)+2)
 	combined = append(combined, specs...)
+	combined = append(combined, flagSpec{name: "--help"})
 	combined = append(combined, flagSpec{name: "--output", values: outputValues})
 	return combined
 }

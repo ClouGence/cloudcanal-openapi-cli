@@ -34,6 +34,8 @@ cloudcanal
 单次命令：
 
 ```bash
+cloudcanal --help
+cloudcanal jobs --help
 cloudcanal jobs list
 cloudcanal jobs show 123
 cloudcanal datasources list --type MYSQL

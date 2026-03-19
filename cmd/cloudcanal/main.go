@@ -54,6 +54,14 @@ func handleEarlyCommands(args []string) (bool, int) {
 		return true, 0
 	}
 
+	if len(args) > 0 {
+		_ = i18n.SetLanguage(config.NewService("").LoadLanguage())
+	}
+	if helpText, ok := repl.RenderCommandHelp(args); ok {
+		fmt.Println(helpText)
+		return true, 0
+	}
+
 	if len(args) == 0 {
 		return false, 0
 	}

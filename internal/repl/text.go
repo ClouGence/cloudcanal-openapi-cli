@@ -56,6 +56,13 @@ func (s *Shell) usageDataSources() string {
 	return "Usage: datasources list [--id ID] [--type TYPE] [--deploy-type TYPE] [--host-type TYPE] [--lifecycle STATE] | datasources show <dataSourceId>"
 }
 
+func (s *Shell) usageDataSourcesList() string {
+	if s.isChinese() {
+		return "用法：datasources list [--id ID] [--type TYPE] [--deploy-type TYPE] [--host-type TYPE] [--lifecycle STATE]"
+	}
+	return "Usage: datasources list [--id ID] [--type TYPE] [--deploy-type TYPE] [--host-type TYPE] [--lifecycle STATE]"
+}
+
 func (s *Shell) usageDataSourceShow() string {
 	if s.isChinese() {
 		return "用法：datasources show <dataSourceId>"
@@ -70,11 +77,25 @@ func (s *Shell) usageClusters() string {
 	return "Usage: clusters list [--name NAME] [--desc DESC] [--cloud CLOUD] [--region REGION]"
 }
 
+func (s *Shell) usageClustersList() string {
+	if s.isChinese() {
+		return "用法：clusters list [--name NAME] [--desc DESC] [--cloud CLOUD] [--region REGION]"
+	}
+	return "Usage: clusters list [--name NAME] [--desc DESC] [--cloud CLOUD] [--region REGION]"
+}
+
 func (s *Shell) usageWorkers() string {
 	if s.isChinese() {
 		return "用法：workers list [--cluster-id ID] [--source-id ID] [--target-id ID] | workers start <workerId> | workers stop <workerId>"
 	}
 	return "Usage: workers list [--cluster-id ID] [--source-id ID] [--target-id ID] | workers start <workerId> | workers stop <workerId>"
+}
+
+func (s *Shell) usageWorkersList() string {
+	if s.isChinese() {
+		return "用法：workers list [--cluster-id ID] [--source-id ID] [--target-id ID]"
+	}
+	return "Usage: workers list [--cluster-id ID] [--source-id ID] [--target-id ID]"
 }
 
 func (s *Shell) usageWorkerAction(action string) string {
@@ -91,11 +112,39 @@ func (s *Shell) usageConsoleJobs() string {
 	return "Usage: consolejobs show <consoleJobId>"
 }
 
+func (s *Shell) usageConsoleJobShow() string {
+	if s.isChinese() {
+		return "用法：consolejobs show <consoleJobId>"
+	}
+	return "Usage: consolejobs show <consoleJobId>"
+}
+
 func (s *Shell) usageJobConfig() string {
 	if s.isChinese() {
 		return "用法：job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=true|false]"
 	}
 	return "Usage: job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=true|false]"
+}
+
+func (s *Shell) usageJobConfigSpecs() string {
+	if s.isChinese() {
+		return "用法：job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=true|false]"
+	}
+	return "Usage: job-config specs [--type TYPE] [--initial-sync=true|false] [--short-term-sync=true|false]"
+}
+
+func (s *Shell) usageConfigShow() string {
+	if s.isChinese() {
+		return "用法：config show"
+	}
+	return "Usage: config show"
+}
+
+func (s *Shell) usageConfigInit() string {
+	if s.isChinese() {
+		return "用法：config init"
+	}
+	return "Usage: config init"
 }
 
 func (s *Shell) usageCompletion() string {

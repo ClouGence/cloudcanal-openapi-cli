@@ -84,7 +84,7 @@ func (s *Shell) handleJobs(tokens []string) error {
 		}
 		return s.printActionResult("job.replayed", "job", "replayed", jobID)
 	default:
-		s.io.Println(s.usageJobsGroup())
+		s.printUnknownSubcommand("jobs", tokens[1], jobsSubcommands, s.usageJobsGroup())
 		return nil
 	}
 }

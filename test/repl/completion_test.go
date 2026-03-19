@@ -30,7 +30,9 @@ func TestCompletionCandidatesSuggestCommandsFlagsAndValues(t *testing.T) {
 		want []string
 	}{
 		{name: "top level", args: []string{""}, want: []string{"help", "jobs", "lang"}},
+		{name: "top level help flag", args: []string{"--h"}, want: []string{"--help"}},
 		{name: "top level global flag", args: []string{"--o"}, want: []string{"--output"}},
+		{name: "jobs help flag", args: []string{"jobs", "--h"}, want: []string{"--help"}},
 		{name: "jobs subcommand", args: []string{"jobs", "re"}, want: []string{"replay"}},
 		{name: "list flag", args: []string{"jobs", "list", "--so"}, want: []string{"--source-id"}},
 		{name: "global flag value", args: []string{"jobs", "list", "--output", ""}, want: []string{"text", "json"}},

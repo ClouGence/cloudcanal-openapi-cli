@@ -13,6 +13,8 @@ cloudcanal
 单次命令模式：
 
 ```bash
+cloudcanal --help
+cloudcanal jobs --help
 cloudcanal jobs list
 cloudcanal datasources list --type MYSQL
 cloudcanal jobs list --type SYNC --output json
@@ -80,7 +82,7 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 
 ## 基本命令
 
-`help`
+`help` / `--help`
 
 显示帮助入口。也支持：
 
@@ -92,6 +94,14 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 - `help job-config`
 - `help config`
 - `help lang`
+
+绝大多数命令组也支持 `--help`，例如：
+
+```bash
+cloudcanal jobs --help
+cloudcanal jobs list --help
+cloudcanal config --help
+```
 
 `config show`
 

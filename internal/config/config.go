@@ -142,6 +142,26 @@ func (s *Service) Load() (AppConfig, error) {
 	return s.loadFromPath(s.path)
 }
 
+func (s *Service) LoadLanguage() string {
+	data, err := os.ReadFile(s.path)
+	if err != nil {
+		return i18n.DefaultLanguage()
+	}
+
+	var payload struct {
+		Language string `json:"language"`
+	}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return i18n.DefaultLanguage()
+	}
+
+	normalized := i18n.NormalizeLanguage(payload.Language)
+	if normalized == "" {
+		return i18n.DefaultLanguage()
+	}
+	return normalized
+}
+
 func (s *Service) loadFromPath(path string) (AppConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

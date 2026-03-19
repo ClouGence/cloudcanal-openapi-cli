@@ -7,6 +7,14 @@ import (
 )
 
 func (s *Shell) printHelp(args []string) {
+	s.io.Println(s.renderHelp(args))
+}
+
+func RenderHelp(args []string) string {
+	return (&Shell{}).renderHelp(args)
+}
+
+func (s *Shell) renderHelp(args []string) string {
 	topic := ""
 	if len(args) > 0 {
 		topic = strings.ToLower(args[0])
@@ -14,27 +22,27 @@ func (s *Shell) printHelp(args []string) {
 
 	switch topic {
 	case "", "overview":
-		s.io.Println(s.helpOverview())
+		return s.helpOverview()
 	case "jobs":
-		s.io.Println(s.helpJobs())
+		return s.helpJobs()
 	case "datasources":
-		s.io.Println(s.helpDataSources())
+		return s.helpDataSources()
 	case "clusters":
-		s.io.Println(s.helpClusters())
+		return s.helpClusters()
 	case "workers":
-		s.io.Println(s.helpWorkers())
+		return s.helpWorkers()
 	case "consolejobs":
-		s.io.Println(s.helpConsoleJobs())
+		return s.helpConsoleJobs()
 	case "job-config", "jobconfig":
-		s.io.Println(s.helpJobConfig())
+		return s.helpJobConfig()
 	case "config":
-		s.io.Println(s.helpConfig())
+		return s.helpConfig()
 	case "lang", "language":
-		s.io.Println(s.helpLanguage())
+		return s.helpLanguage()
 	case "completion":
-		s.io.Println(s.helpCompletion())
+		return s.helpCompletion()
 	default:
-		s.io.Println(s.helpOverview())
+		return s.unknownHelpText(topic)
 	}
 }
 

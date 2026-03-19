@@ -35,14 +35,18 @@ func (s *Shell) handleDataSources(tokens []string) error {
 		}
 		return s.printDataSource(dataSourceID)
 	default:
-		s.io.Println(s.usageDataSources())
+		s.printUnknownSubcommand("datasources", tokens[1], dataSourceSubcommands, s.usageDataSources())
 		return nil
 	}
 }
 
 func (s *Shell) handleClusters(tokens []string) error {
-	if len(tokens) < 2 || !strings.EqualFold(tokens[1], "list") {
+	if len(tokens) < 2 {
 		s.io.Println(s.usageClusters())
+		return nil
+	}
+	if !strings.EqualFold(tokens[1], "list") {
+		s.printUnknownSubcommand("clusters", tokens[1], clusterSubcommands, s.usageClusters())
 		return nil
 	}
 
@@ -86,14 +90,18 @@ func (s *Shell) handleWorkers(tokens []string) error {
 		}
 		return s.printActionResult("worker.stopped", "worker", "stopped", workerID)
 	default:
-		s.io.Println(s.usageWorkers())
+		s.printUnknownSubcommand("workers", tokens[1], workerSubcommands, s.usageWorkers())
 		return nil
 	}
 }
 
 func (s *Shell) handleConsoleJobs(tokens []string) error {
-	if len(tokens) != 3 || !strings.EqualFold(tokens[1], "show") {
+	if len(tokens) != 3 {
 		s.io.Println(s.usageConsoleJobs())
+		return nil
+	}
+	if !strings.EqualFold(tokens[1], "show") {
+		s.printUnknownSubcommand("consolejobs", tokens[1], consoleJobSubcommands, s.usageConsoleJobs())
 		return nil
 	}
 
@@ -105,8 +113,12 @@ func (s *Shell) handleConsoleJobs(tokens []string) error {
 }
 
 func (s *Shell) handleJobConfig(tokens []string) error {
-	if len(tokens) < 2 || !strings.EqualFold(tokens[1], "specs") {
+	if len(tokens) < 2 {
 		s.io.Println(s.usageJobConfig())
+		return nil
+	}
+	if !strings.EqualFold(tokens[1], "specs") {
+		s.printUnknownSubcommand("job-config", tokens[1], jobConfigSubcommands, s.usageJobConfig())
 		return nil
 	}
 

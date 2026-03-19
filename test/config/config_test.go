@@ -56,6 +56,19 @@ func TestServiceRejectsMissingField(t *testing.T) {
 	}
 }
 
+func TestServiceLoadLanguageFromPartialConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+	if err := os.WriteFile(path, []byte(`{"language":"zh"}`), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	service := config.NewService(path)
+	if got := service.LoadLanguage(); got != "zh" {
+		t.Fatalf("LoadLanguage() = %q, want zh", got)
+	}
+}
+
 func TestConfigNetworkSettingsDefaultsAndValidation(t *testing.T) {
 	cfg := config.AppConfig{
 		APIBaseURL: "https://cc.example.com",

@@ -363,6 +363,99 @@ func TestShellHelpOverviewHidesInternalCommands(t *testing.T) {
 	}
 }
 
+func TestShellSupportsHelpFlags(t *testing.T) {
+	runtime := &fakeRuntime{
+		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
+		dataJobs:    &fakeDataJobs{},
+		dataSources: &fakeDataSources{},
+		clusters:    &fakeClusters{},
+		workers:     &fakeWorkers{},
+		consoleJobs: &fakeConsoleJobs{},
+		jobConfigs:  &fakeJobConfigs{},
+	}
+	io := testsupport.NewTestConsole()
+
+	shell := repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"--help"}); err != nil {
+		t.Fatalf("ExecuteArgs(--help) error = %v", err)
+	}
+	if !strings.Contains(io.Output(), "CloudCanal CLI help") {
+		t.Fatalf("output missing top-level help in %q", io.Output())
+	}
+
+	io = testsupport.NewTestConsole()
+	shell = repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"jobs", "--help"}); err != nil {
+		t.Fatalf("ExecuteArgs(jobs --help) error = %v", err)
+	}
+	if !strings.Contains(io.Output(), "jobs commands") {
+		t.Fatalf("output missing jobs help in %q", io.Output())
+	}
+
+	io = testsupport.NewTestConsole()
+	shell = repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"jobs", "list", "--help"}); err != nil {
+		t.Fatalf("ExecuteArgs(jobs list --help) error = %v", err)
+	}
+	if !strings.Contains(io.Output(), "Usage: jobs list [--name NAME] [--type TYPE] [--desc DESC] [--source-id ID] [--target-id ID]") {
+		t.Fatalf("output missing jobs list usage in %q", io.Output())
+	}
+}
+
+func TestShellSuggestsClosestCommands(t *testing.T) {
+	runtime := &fakeRuntime{
+		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
+		dataJobs:    &fakeDataJobs{},
+		dataSources: &fakeDataSources{},
+		clusters:    &fakeClusters{},
+		workers:     &fakeWorkers{},
+		consoleJobs: &fakeConsoleJobs{},
+		jobConfigs:  &fakeJobConfigs{},
+	}
+	io := testsupport.NewTestConsole()
+
+	shell := repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"jbos", "list"}); err != nil {
+		t.Fatalf("ExecuteArgs(jbos list) error = %v", err)
+	}
+	if !strings.Contains(io.Output(), "Did you mean: jobs") {
+		t.Fatalf("output missing root suggestion in %q", io.Output())
+	}
+
+	io = testsupport.NewTestConsole()
+	shell = repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"jobs", "shwo"}); err != nil {
+		t.Fatalf("ExecuteArgs(jobs shwo) error = %v", err)
+	}
+	out := io.Output()
+	if !strings.Contains(out, "Unknown jobs command: shwo") || !strings.Contains(out, "Did you mean: jobs show") {
+		t.Fatalf("output missing jobs suggestion in %q", out)
+	}
+}
+
+func TestShellUnknownHelpTopicShowsSuggestion(t *testing.T) {
+	runtime := &fakeRuntime{
+		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
+		dataJobs:    &fakeDataJobs{},
+		dataSources: &fakeDataSources{},
+		clusters:    &fakeClusters{},
+		workers:     &fakeWorkers{},
+		consoleJobs: &fakeConsoleJobs{},
+		jobConfigs:  &fakeJobConfigs{},
+	}
+	io := testsupport.NewTestConsole()
+
+	shell := repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"help", "clustrs"}); err != nil {
+		t.Fatalf("ExecuteArgs(help clustrs) error = %v", err)
+	}
+
+	out := io.Output()
+	if !strings.Contains(out, "Unknown help topic: clustrs") || !strings.Contains(out, "Did you mean: help clusters") {
+		t.Fatalf("output missing help suggestion in %q", out)
+	}
+}
+
 func TestShellSwitchesLanguageForFollowUpOutput(t *testing.T) {
 	runtime := &fakeRuntime{
 		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
