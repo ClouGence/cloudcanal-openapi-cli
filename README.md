@@ -23,10 +23,6 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 cloudcanal
 ```
 
-首次启动会进入初始化向导。
-
-默认安装目录是 `~/.cloudcanal-cli`，其中二进制位于 `~/.cloudcanal-cli/bin/cloudcanal`，补全文件位于 `~/.cloudcanal-cli/completions`。
-
 ## 常用用法
 
 交互模式：
