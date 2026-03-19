@@ -27,7 +27,7 @@ cloudcanal jobs list --type SYNC --output json
 一键安装：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/install.sh | bash
 ```
 
 说明：
@@ -38,13 +38,11 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 - 默认会把二进制安装到 `~/.cloudcanal-cli/bin/cloudcanal`
 - 补全文件会安装到 `~/.cloudcanal-cli/completions`
 - 之后会自动完成命令、PATH 和补全安装
-- 在交互终端中，安装完成后会自动启动一个新的 login shell，让命令立即生效
-- 如果你在 CI 或脚本里不希望自动拉起新 shell，可以在安装前设置 `CLOUDCANAL_AUTO_RELOAD_SHELL=0`
 
 一键卸载：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/uninstall.sh | bash
 ```
 
 ## 初始化配置

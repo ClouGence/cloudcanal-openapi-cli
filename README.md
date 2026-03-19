@@ -14,10 +14,8 @@ CloudCanal OpenAPI 的命令行工具，支持：
 1. 安装
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/install.sh | bash
 ```
-
-交互式安装完成后会自动启动一个新的 login shell，让 `cloudcanal` 立即可用。
 
 2. 启动并完成初始化
 
@@ -87,5 +85,5 @@ cloudcanal jobs list --type SYNC --output json
 ## 卸载
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/uninstall.sh | bash
 ```

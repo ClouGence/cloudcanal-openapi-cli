@@ -2,9 +2,16 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-source "$SCRIPT_DIR/lib/log.sh"
+_log() {
+  local level="$1"
+  local color="$2"
+  shift 2
+  printf '\033[%sm[%s]\033[0m %s %s\n' "$color" "$level" "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
+}
+
+log_info()    { _log "INFO" "34" "$@"; }
+log_success() { _log "SUCCESS" "32" "$@"; }
+log_error()   { _log "ERROR" "31" "$@" >&2; }
 
 default_shell_rc() {
   case "$(basename "${SHELL:-}")" in
@@ -14,7 +21,7 @@ default_shell_rc() {
 }
 
 APP_NAME="${APP_NAME:-cloudcanal}"
-BIN_PATH="$ROOT_DIR/bin/$APP_NAME"
+REPO_NAME="${REPO_NAME:-cloudcanal-openapi-cli}"
 INSTALL_ROOT="${INSTALL_ROOT:-$HOME/.cloudcanal-cli}"
 INSTALL_BIN_DIR="${INSTALL_BIN_DIR:-$INSTALL_ROOT/bin}"
 INSTALL_PATH="$INSTALL_BIN_DIR/$APP_NAME"
@@ -67,25 +74,13 @@ prune_install_dirs() {
   remove_if_empty_dir "$INSTALL_ROOT"
 }
 
-remove_link() {
-  if [[ -L "$INSTALL_PATH" ]]; then
-    local target
-    target="$(readlink "$INSTALL_PATH")"
-    if [[ "$target" == "$BIN_PATH" ]]; then
-      rm -f "$INSTALL_PATH"
-      log_success "Removed $INSTALL_PATH"
-      return 0
-    fi
-    log_info "Skipped $INSTALL_PATH because it is not managed by this project"
-    return 0
-  fi
-
+remove_binary() {
   if [[ -e "$INSTALL_PATH" ]]; then
-    log_info "Skipped $INSTALL_PATH because it is not a symlink created by this project"
-    return 0
+    rm -f "$INSTALL_PATH"
+    log_success "Removed $INSTALL_PATH"
+  else
+    log_info "No installed command found at $INSTALL_PATH"
   fi
-
-  log_info "No installed command found at $INSTALL_PATH"
 }
 
 remove_completion_files() {
@@ -104,12 +99,11 @@ remove_completion_files() {
   fi
 }
 
-log_info "Uninstall $APP_NAME command"
-remove_link
+log_info "CloudCanal OpenAPI CLI release uninstall started"
+remove_binary
 remove_rc_block "$PATH_MARK_START" "$PATH_MARK_END" "PATH configuration"
 remove_completion_files
 remove_rc_block "$COMPLETION_MARK_START" "$COMPLETION_MARK_END" "shell completion configuration"
 prune_install_dirs
-
 log_info "Open a new shell or source $INSTALL_SHELL_RC to refresh PATH"
-print_run_summary "Uninstall completed"
+log_success "Release uninstall completed"
