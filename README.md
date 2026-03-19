@@ -11,20 +11,9 @@ CloudCanal OpenAPI 的命令行工具，支持：
 
 ## 快速开始
 
-安装：
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_install.sh | bash
 ```
-
-说明：
-
-- 安装脚本会从 GitHub Releases 下载预编译二进制
-- 下载后会自动校验 `checksums.txt`
-- 不需要本机安装 Go
-- 会自动安装命令、PATH 和 zsh / bash 补全
-
-安装完成后，先直接运行：
 
 ```bash
 cloudcanal
@@ -95,25 +84,3 @@ cloudcanal jobs list --type SYNC --output json
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_uninstall.sh | bash
 ```
-
-## 开发
-
-要求：
-
-- Go 1.25+
-
-常用命令：
-
-```bash
-./scripts/all_build.sh
-make build
-make test
-./scripts/install.sh
-./scripts/uninstall.sh
-```
-
-发布：
-
-- 推送 tag，例如 `v0.1.0`
-- GitHub Actions 会自动构建并发布 release 资产
-- Release 会同时生成 `checksums.txt`
