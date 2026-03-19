@@ -8,7 +8,8 @@
 
 要求：
 
-- Go 1.25+
+- 日常使用：`curl`、`tar`
+- 本地源码开发：Go 1.25+
 
 构建并测试：
 
@@ -16,7 +17,7 @@
 ./scripts/all_build.sh
 ```
 
-安装到命令行：
+源码方式安装到命令行：
 
 ```bash
 ./scripts/install.sh
@@ -30,8 +31,14 @@
 curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_install.sh | bash
 ```
 
-这个一键安装脚本会下载源码归档并在本机编译，所以仍然需要本机已有 Go 1.25+。
-安装后的仓库默认会落在 `~/.local/share/cloudcanal-openapi-cli/repository`。
+这个一键安装脚本会从 GitHub Releases 下载预编译二进制，不需要本机安装 Go。
+默认会把二进制安装到 `~/.local/share/cloudcanal-openapi-cli/bin/cloudcanal`。
+
+一键卸载：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_uninstall.sh | bash
+```
 
 卸载：
 
@@ -48,6 +55,11 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 第一次启动会进入初始化向导，配置文件保存到 `~/.cloudcanal/config.json`。配置格式、字段含义和命令参数说明见详细文档。
 
 ## 开发
+
+发布：
+
+- 推送 tag，例如 `v0.1.0`
+- GitHub Actions 会自动构建并发布 `darwin/linux + amd64/arm64` 的 release 资产
 
 只编译：
 

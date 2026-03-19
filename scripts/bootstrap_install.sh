@@ -16,14 +16,24 @@ log_error()   { _log "ERROR" "31" "$@" >&2; }
 APP_NAME="${APP_NAME:-cloudcanal}"
 REPO_OWNER="${REPO_OWNER:-Arlowen}"
 REPO_NAME="${REPO_NAME:-cloudcanal-openapi-cli}"
-REPO_REF="${REPO_REF:-main}"
-ARCHIVE_URL="${ARCHIVE_URL:-https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/$REPO_REF.tar.gz}"
+RELEASE_VERSION="${RELEASE_VERSION:-latest}"
 INSTALL_ROOT="${INSTALL_ROOT:-$HOME/.local/share/$REPO_NAME}"
-REPOSITORY_DIR="$INSTALL_ROOT/repository"
+INSTALL_BIN_DIR="${INSTALL_BIN_DIR:-$HOME/bin}"
+INSTALL_PATH="$INSTALL_BIN_DIR/$APP_NAME"
+INSTALL_SHELL_RC="${INSTALL_SHELL_RC:-$HOME/.zshrc}"
+INSTALL_ZSH_COMPLETION_DIR="${INSTALL_ZSH_COMPLETION_DIR:-$HOME/.zsh/completions}"
+INSTALL_BASH_COMPLETION_DIR="${INSTALL_BASH_COMPLETION_DIR:-$HOME/.local/share/bash-completion/completions}"
+INSTALL_BIN_PATH="$INSTALL_ROOT/bin/$APP_NAME"
+ZSH_COMPLETION_PATH="$INSTALL_ZSH_COMPLETION_DIR/_$APP_NAME"
+BASH_COMPLETION_PATH="$INSTALL_BASH_COMPLETION_DIR/$APP_NAME"
+PATH_MARK_START="# >>> cloudcanal-openapi-cli >>>"
+PATH_MARK_END="# <<< cloudcanal-openapi-cli <<<"
+COMPLETION_MARK_START="# >>> cloudcanal-openapi-cli completion >>>"
+COMPLETION_MARK_END="# <<< cloudcanal-openapi-cli completion <<<"
+DOWNLOAD_BASE_URL="${DOWNLOAD_BASE_URL:-}"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/${REPO_NAME}.XXXXXX")"
-ARCHIVE_PATH="$TMP_DIR/source.tar.gz"
+ARCHIVE_PATH="$TMP_DIR/$APP_NAME.tar.gz"
 EXTRACT_DIR="$TMP_DIR/extract"
-STAGED_REPOSITORY_DIR="$INSTALL_ROOT/repository.new"
 
 cleanup() {
   rm -rf "$TMP_DIR"
@@ -38,39 +48,136 @@ require_command() {
   exit 1
 }
 
+detect_platform() {
+  local os arch
+
+  case "$(uname -s)" in
+    Darwin) os="darwin" ;;
+    Linux) os="linux" ;;
+    *)
+      log_error "Unsupported operating system: $(uname -s)"
+      exit 1
+      ;;
+  esac
+
+  case "$(uname -m)" in
+    x86_64|amd64) arch="amd64" ;;
+    arm64|aarch64) arch="arm64" ;;
+    *)
+      log_error "Unsupported CPU architecture: $(uname -m)"
+      exit 1
+      ;;
+  esac
+
+  PLATFORM_OS="$os"
+  PLATFORM_ARCH="$arch"
+  ARCHIVE_NAME="${APP_NAME}_${PLATFORM_OS}_${PLATFORM_ARCH}.tar.gz"
+}
+
+download_url() {
+  if [[ -n "$DOWNLOAD_BASE_URL" ]]; then
+    printf '%s/%s\n' "${DOWNLOAD_BASE_URL%/}" "$ARCHIVE_NAME"
+    return 0
+  fi
+
+  if [[ "$RELEASE_VERSION" == "latest" ]]; then
+    printf 'https://github.com/%s/%s/releases/latest/download/%s\n' "$REPO_OWNER" "$REPO_NAME" "$ARCHIVE_NAME"
+    return 0
+  fi
+
+  printf 'https://github.com/%s/%s/releases/download/%s/%s\n' "$REPO_OWNER" "$REPO_NAME" "$RELEASE_VERSION" "$ARCHIVE_NAME"
+}
+
+install_binary() {
+  mkdir -p "$INSTALL_ROOT/bin" "$EXTRACT_DIR"
+
+  local url
+  url="$(download_url)"
+  log_info "Downloading release asset from $url"
+  curl -fsSL "$url" -o "$ARCHIVE_PATH"
+
+  log_info "Extracting release asset"
+  tar -xzf "$ARCHIVE_PATH" -C "$EXTRACT_DIR"
+
+  local extracted_binary="$EXTRACT_DIR/$APP_NAME"
+  if [[ ! -x "$extracted_binary" ]]; then
+    log_error "Release asset does not contain executable $APP_NAME"
+    exit 1
+  fi
+
+  install -m 755 "$extracted_binary" "$INSTALL_BIN_PATH"
+  log_success "Installed binary to $INSTALL_BIN_PATH"
+}
+
+ensure_path_block() {
+  mkdir -p "$(dirname "$INSTALL_SHELL_RC")"
+  touch "$INSTALL_SHELL_RC"
+
+  if grep -Fq "$PATH_MARK_START" "$INSTALL_SHELL_RC"; then
+    log_success "PATH configuration already present in $INSTALL_SHELL_RC"
+    return 0
+  fi
+
+  {
+    printf '\n%s\n' "$PATH_MARK_START"
+    printf 'export PATH="%s:$PATH"\n' "$INSTALL_BIN_DIR"
+    printf '%s\n' "$PATH_MARK_END"
+  } >> "$INSTALL_SHELL_RC"
+
+  log_success "Updated $INSTALL_SHELL_RC"
+}
+
+ensure_completion_files() {
+  mkdir -p "$INSTALL_ZSH_COMPLETION_DIR" "$INSTALL_BASH_COMPLETION_DIR"
+
+  "$INSTALL_BIN_PATH" completion zsh "$APP_NAME" > "$ZSH_COMPLETION_PATH"
+  log_success "Installed zsh completion to $ZSH_COMPLETION_PATH"
+
+  "$INSTALL_BIN_PATH" completion bash "$APP_NAME" > "$BASH_COMPLETION_PATH"
+  log_success "Installed bash completion to $BASH_COMPLETION_PATH"
+}
+
+ensure_completion_block() {
+  mkdir -p "$(dirname "$INSTALL_SHELL_RC")"
+  touch "$INSTALL_SHELL_RC"
+
+  if grep -Fq "$COMPLETION_MARK_START" "$INSTALL_SHELL_RC"; then
+    log_success "Shell completion configuration already present in $INSTALL_SHELL_RC"
+    return 0
+  fi
+
+  {
+    printf '\n%s\n' "$COMPLETION_MARK_START"
+    printf 'if [[ -d "%s" ]]; then\n' "$INSTALL_ZSH_COMPLETION_DIR"
+    printf '  fpath=("%s" $fpath)\n' "$INSTALL_ZSH_COMPLETION_DIR"
+    printf '  autoload -Uz compinit\n'
+    printf '  compinit\n'
+    printf 'fi\n'
+    printf '%s\n' "$COMPLETION_MARK_END"
+  } >> "$INSTALL_SHELL_RC"
+
+  log_success "Updated $INSTALL_SHELL_RC"
+}
+
+install_command_link() {
+  mkdir -p "$INSTALL_BIN_DIR"
+  ln -sfn "$INSTALL_BIN_PATH" "$INSTALL_PATH"
+  log_success "Installed command link at $INSTALL_PATH"
+}
+
 trap cleanup EXIT
 
-log_info "CloudCanal OpenAPI CLI bootstrap install started"
+log_info "CloudCanal OpenAPI CLI release install started"
 require_command curl
 require_command tar
-require_command go
+detect_platform
+install_binary
+install_command_link
+ensure_path_block
+ensure_completion_files
+ensure_completion_block
 
-mkdir -p "$INSTALL_ROOT" "$EXTRACT_DIR"
-
-log_info "Downloading source archive from $ARCHIVE_URL"
-curl -fsSL "$ARCHIVE_URL" -o "$ARCHIVE_PATH"
-
-log_info "Extracting source archive"
-tar -xzf "$ARCHIVE_PATH" -C "$EXTRACT_DIR"
-
-SOURCE_DIR="$(find "$EXTRACT_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
-if [[ -z "${SOURCE_DIR:-}" ]]; then
-  log_error "Failed to locate extracted source directory"
-  exit 1
-fi
-
-log_info "Building project from source"
-"$SOURCE_DIR/scripts/all_build.sh"
-
-rm -rf "$STAGED_REPOSITORY_DIR"
-mv "$SOURCE_DIR" "$STAGED_REPOSITORY_DIR"
-rm -rf "$REPOSITORY_DIR"
-mv "$STAGED_REPOSITORY_DIR" "$REPOSITORY_DIR"
-log_success "Installed source repository at $REPOSITORY_DIR"
-
-log_info "Running project install script"
-"$REPOSITORY_DIR/scripts/install.sh"
-
-log_success "Bootstrap install completed"
-log_info "One-line install command:"
-log_info "curl -fsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/$REPO_REF/scripts/bootstrap_install.sh | bash"
+log_info "Open a new shell or source $INSTALL_SHELL_RC, then run: $APP_NAME jobs list"
+log_info "One-line uninstall command:"
+log_info "curl -fsSL https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/scripts/bootstrap_uninstall.sh | bash"
+log_success "Release install completed"

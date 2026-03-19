@@ -31,11 +31,16 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 
 说明：
 
-- 当前一键安装会下载 GitHub 源码归档并在本机编译
-- 因此仍然要求本机已安装 `Go 1.25+`
-- 默认会把源码安装到 `~/.local/share/cloudcanal-openapi-cli/repository`
-- 之后会继续复用仓库内的 `scripts/install.sh` 完成命令、PATH 和补全安装
-- 如果通过一键安装方式卸载，可执行 `~/.local/share/cloudcanal-openapi-cli/repository/scripts/uninstall.sh`
+- 当前一键安装会从 GitHub Releases 下载预编译二进制
+- 不需要本机安装 `Go`
+- 默认会把二进制安装到 `~/.local/share/cloudcanal-openapi-cli/bin/cloudcanal`
+- 之后会自动完成命令、PATH 和补全安装
+
+一键卸载：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_uninstall.sh | bash
+```
 
 ## 初始化配置
 
