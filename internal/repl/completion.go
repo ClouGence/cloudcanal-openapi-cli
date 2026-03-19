@@ -25,7 +25,6 @@ var (
 		"consolejobs",
 		"job-config",
 		"config",
-		"lang",
 	}
 	visibleReplOnlyCommands = []string{"exit"}
 	visibleHelpTopics       = []string{
@@ -36,7 +35,6 @@ var (
 		"consolejobs",
 		"job-config",
 		"config",
-		"lang",
 	}
 	boolValues   = []string{"true", "false"}
 	outputValues = []string{"text", "json"}
@@ -133,6 +131,14 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 	case "config":
 		if len(context) == 1 {
 			return matchCandidates(append(append([]string{}, configSubcommands...), "--help"), prefix)
+		}
+		if strings.EqualFold(context[1], "lang") {
+			if len(context) == 2 {
+				return matchCandidates(append(append([]string{}, langSubcommands...), "--help"), prefix)
+			}
+			if len(context) == 3 && strings.EqualFold(context[2], "set") {
+				return matchCandidates([]string{"en", "zh"}, prefix)
+			}
 		}
 		return nil
 	case "jobs":

@@ -36,6 +36,7 @@ cloudcanal
 ```bash
 cloudcanal --help
 cloudcanal jobs --help
+cloudcanal config lang set zh
 cloudcanal jobs list
 cloudcanal jobs show 123
 cloudcanal datasources list --type MYSQL

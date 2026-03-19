@@ -45,7 +45,7 @@ func (s *Shell) Run() error {
 			}
 			if console.IsPromptAborted(err) {
 				s.io.Println("")
-				continue
+				return nil
 			}
 			return err
 		}
@@ -124,12 +124,16 @@ func (s *Shell) handleTokens(tokens []string) error {
 }
 
 func (s *Shell) handleConfig(tokens []string) error {
-	if len(tokens) != 2 {
+	if len(tokens) < 2 {
 		s.io.Println(s.usageConfig())
 		return nil
 	}
 	switch strings.ToLower(tokens[1]) {
 	case "show":
+		if len(tokens) != 2 {
+			s.io.Println(s.usageConfigShow())
+			return nil
+		}
 		cfg := s.runtime.Config()
 		if s.isJSONOutput() {
 			return s.printJSON(map[string]any{
@@ -149,6 +153,10 @@ func (s *Shell) handleConfig(tokens []string) error {
 		s.io.Println(i18n.T("config.httpReadRetryBackoffMillisLabel") + ": " + strconv.Itoa(cfg.HTTPReadRetryBackoffMillisValue()))
 		return nil
 	case "init":
+		if len(tokens) != 2 {
+			s.io.Println(s.usageConfigInit())
+			return nil
+		}
 		updated, err := s.runtime.Reinitialize(s.io)
 		if err != nil {
 			return err
@@ -157,6 +165,8 @@ func (s *Shell) handleConfig(tokens []string) error {
 			s.io.Println(i18n.T("runtime.configUpdated"))
 		}
 		return nil
+	case "lang":
+		return s.handleLanguageTokens(tokens[2:], "config lang", s.usageConfigLang())
 	default:
 		s.printUnknownSubcommand("config", tokens[1], configSubcommands, s.usageConfig())
 		return nil
@@ -164,9 +174,13 @@ func (s *Shell) handleConfig(tokens []string) error {
 }
 
 func (s *Shell) handleLang(tokens []string) error {
-	if len(tokens) == 1 || strings.EqualFold(tokens[1], "show") {
-		if len(tokens) > 2 {
-			s.io.Println(i18n.T("lang.usage"))
+	return s.handleLanguageTokens(tokens[1:], "config lang", s.usageConfigLang())
+}
+
+func (s *Shell) handleLanguageTokens(tokens []string, group string, usage string) error {
+	if len(tokens) == 0 || strings.EqualFold(tokens[0], "show") {
+		if len(tokens) > 1 {
+			s.io.Println(usage)
 			return nil
 		}
 		if s.isJSONOutput() {
@@ -179,12 +193,12 @@ func (s *Shell) handleLang(tokens []string) error {
 		s.io.Println(i18n.T("common.supportedLanguages"))
 		return nil
 	}
-	if strings.EqualFold(tokens[1], "set") {
-		if len(tokens) != 3 {
-			s.io.Println(i18n.T("lang.usage"))
+	if strings.EqualFold(tokens[0], "set") {
+		if len(tokens) != 2 {
+			s.io.Println(usage)
 			return nil
 		}
-		if err := s.runtime.SetLanguage(tokens[2]); err != nil {
+		if err := s.runtime.SetLanguage(tokens[1]); err != nil {
 			return err
 		}
 		if s.isJSONOutput() {
@@ -196,6 +210,6 @@ func (s *Shell) handleLang(tokens []string) error {
 		s.io.Println(i18n.T("lang.updated", i18n.DisplayName(s.runtime.Config().NormalizedLanguage())))
 		return nil
 	}
-	s.printUnknownSubcommand("lang", tokens[1], langSubcommands, i18n.T("lang.usage"))
+	s.printUnknownSubcommand(group, tokens[0], langSubcommands, usage)
 	return nil
 }

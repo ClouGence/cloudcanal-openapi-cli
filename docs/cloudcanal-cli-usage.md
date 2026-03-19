@@ -93,7 +93,6 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 - `help consolejobs`
 - `help job-config`
 - `help config`
-- `help lang`
 
 绝大多数命令组也支持 `--help`，例如：
 
@@ -111,17 +110,17 @@ cloudcanal config --help
 
 重新执行初始化向导，更新配置。
 
-`lang show`
+`config lang show`
 
 显示当前 CLI 文案语言。
 
-`lang set <en|zh>`
+`config lang set <en|zh>`
 
 切换 CLI 文案语言，并持久化到配置文件。
 
 `exit`
 
-退出交互模式。
+退出交互模式。交互模式下也可以直接按 `Ctrl+C` 退出。
 
 ## Jobs
 
@@ -268,5 +267,5 @@ cloudcanal job-config specs --type SYNC --initial-sync=true
 - 可以在查询类命令后追加 `--output json` 获取机器可读结果
 - 交互模式下如果终端支持行编辑，可以直接使用 `TAB` 补全命令、子命令和常见参数
 - 可以先执行 `cloudcanal help` 查看帮助主题，再执行 `cloudcanal help jobs` 这类子帮助查看参数含义
-- 如果想切换中文或英文文案，可执行 `cloudcanal lang set zh` 或 `cloudcanal lang set en`
+- 如果想切换中文或英文文案，可执行 `cloudcanal config lang set zh` 或 `cloudcanal config lang set en`
 - 如果命令执行失败，优先检查 `apiBaseUrl`、`accessKey`、`secretKey` 是否正确

@@ -59,7 +59,6 @@ CloudCanal CLI 帮助
   help consolejobs  查看 ConsoleJob 命令说明
   help job-config   查看数据任务规格命令说明
   help config       查看配置命令说明
-  help lang         查看语言切换命令说明
 
 常用命令：
   jobs list         列出数据任务
@@ -70,11 +69,13 @@ CloudCanal CLI 帮助
   job-config specs  查看任务规格
   config show       查看当前配置
   config init       重新执行初始化向导
-  lang set zh       切换为中文日志
-  lang set en       切换为英文日志
+  config lang show  查看当前语言
+  config lang set zh 切换为中文日志
+  config lang set en 切换为英文日志
 
 交互提示：
   TAB               自动补全命令和参数
+  Ctrl+C            退出交互模式
   exit              退出交互模式
 
 详细使用文档：
@@ -93,7 +94,6 @@ Help topics:
   help consolejobs  Show console job commands
   help job-config   Show data job spec commands
   help config       Show configuration commands
-  help lang         Show language switch commands
 
 Common commands:
   jobs list         List data jobs
@@ -104,11 +104,13 @@ Common commands:
   job-config specs  List data job specs
   config show       Show current config
   config init       Re-run the initialization wizard
-  lang set zh       Switch CLI messages to Chinese
-  lang set en       Switch CLI messages to English
+  config lang show  Show current language
+  config lang set zh Switch CLI messages to Chinese
+  config lang set en Switch CLI messages to English
 
 REPL tips:
   TAB               Complete commands and options
+  Ctrl+C            Exit interactive mode
   exit              Leave interactive mode
 
 Detailed guide:
@@ -342,6 +344,12 @@ config show
 
 config init
   重新进入初始化向导，更新 API 地址、密钥和 language。
+
+config lang show
+  查看当前 CLI 文案语言。
+
+config lang set <en|zh>
+  立即切换 CLI 文案语言并持久化到配置文件。
 `)
 	}
 
@@ -353,18 +361,24 @@ config show
 
 config init
   Re-run the initialization wizard to update API URL, credentials, and language.
+
+config lang show
+  Show the current CLI message language.
+
+config lang set <en|zh>
+  Switch the CLI message language immediately and persist it to config.
 `)
 }
 
 func (s *Shell) helpLanguage() string {
 	if s.isChinese() {
 		return fmt.Sprintf(strings.TrimSpace(`
-lang 命令
+config lang 命令
 
 %s
   查看当前 CLI 文案语言。
 
-lang set <en|zh>
+config lang set <en|zh>
   立即切换 CLI 文案语言并持久化到配置文件。
   en  表示英文
   zh  表示中文
@@ -372,12 +386,12 @@ lang set <en|zh>
 	}
 
 	return fmt.Sprintf(strings.TrimSpace(`
-lang commands
+config lang commands
 
 %s
   Show the current CLI message language.
 
-lang set <en|zh>
+config lang set <en|zh>
   Switch the CLI message language immediately and persist it to config.
   en  English
   zh  Chinese

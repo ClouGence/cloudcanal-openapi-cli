@@ -12,7 +12,7 @@ var (
 	workerSubcommands     = []string{"list", "start", "stop"}
 	consoleJobSubcommands = []string{"show"}
 	jobConfigSubcommands  = []string{"specs"}
-	configSubcommands     = []string{"show", "init"}
+	configSubcommands     = []string{"show", "init", "lang"}
 	langSubcommands       = []string{"show", "set"}
 	completionSubcommands = []string{"zsh", "bash"}
 )
@@ -217,11 +217,13 @@ func RenderCommandHelp(tokens []string) (string, bool) {
 			return shell.usageConfigShow(), true
 		case "init":
 			return shell.usageConfigInit(), true
+		case "lang":
+			return shell.helpLanguage(), true
 		default:
 			return shell.helpConfig(), true
 		}
 	case "lang", "language":
-		return i18n.T("lang.usage"), true
+		return shell.helpLanguage(), true
 	case "completion":
 		if strings.EqualFold(tokens[1], "zsh") || strings.EqualFold(tokens[1], "bash") {
 			return shell.usageCompletion(), true

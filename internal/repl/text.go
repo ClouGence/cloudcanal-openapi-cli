@@ -25,9 +25,9 @@ func usageBlock(title string, commands ...string) string {
 
 func (s *Shell) usageConfig() string {
 	if s.isChinese() {
-		return usageBlock("用法：", "config show", "config init")
+		return usageBlock("用法：", "config show", "config init", "config lang show", "config lang set <en|zh>")
 	}
-	return usageBlock("Usage:", "config show", "config init")
+	return usageBlock("Usage:", "config show", "config init", "config lang show", "config lang set <en|zh>")
 }
 
 func (s *Shell) usageJobsGroup() string {
@@ -190,6 +190,13 @@ func (s *Shell) usageConfigInit() string {
 		return "用法：config init"
 	}
 	return "Usage: config init"
+}
+
+func (s *Shell) usageConfigLang() string {
+	if s.isChinese() {
+		return usageBlock("用法：", "config lang show", "config lang set <en|zh>")
+	}
+	return usageBlock("Usage:", "config lang show", "config lang set <en|zh>")
 }
 
 func (s *Shell) usageCompletion() string {

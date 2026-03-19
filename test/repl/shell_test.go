@@ -14,9 +14,10 @@ import (
 	"cloudcanal-openapi-cli/internal/worker"
 	"cloudcanal-openapi-cli/test/testsupport"
 	"encoding/json"
-	"github.com/peterh/liner"
 	"strings"
 	"testing"
+
+	"github.com/peterh/liner"
 )
 
 func TestShellHandlesHappyPathCommands(t *testing.T) {
@@ -124,9 +125,9 @@ func TestShellHandlesHappyPathCommands(t *testing.T) {
 		"workers stop 5",
 		"consolejobs show 21",
 		"job-config specs --type SYNC --initial-sync=true --short-term-sync=false",
-		"lang show",
-		"lang set zh",
-		"lang set en",
+		"config lang show",
+		"config lang set zh",
+		"config lang set en",
 		"config show",
 		"exit",
 	)
@@ -378,8 +379,8 @@ func TestShellIgnoresPromptAbortInInteractiveMode(t *testing.T) {
 	if strings.Contains(out, "prompt aborted") || strings.Contains(out, "Fatal error") {
 		t.Fatalf("output should not contain prompt abort error in %q", out)
 	}
-	if got := strings.Count(out, "cloudcanal> "); got != 2 {
-		t.Fatalf("prompt count = %d, want 2 in %q", got, out)
+	if got := strings.Count(out, "cloudcanal> "); got != 1 {
+		t.Fatalf("prompt count = %d, want 1 in %q", got, out)
 	}
 }
 
@@ -405,7 +406,9 @@ func TestShellHelpOverviewHidesInternalCommands(t *testing.T) {
 		"jobs list",
 		"datasources list",
 		"config init",
+		"config lang show",
 		"TAB               Complete commands and options",
+		"Ctrl+C            Exit interactive mode",
 		"exit              Leave interactive mode",
 	} {
 		if !strings.Contains(out, want) {
@@ -415,6 +418,7 @@ func TestShellHelpOverviewHidesInternalCommands(t *testing.T) {
 	for _, hidden := range []string{
 		"completion zsh",
 		"help completion",
+		"help lang",
 		"clear             Clear the current screen",
 		"cls               Alias of clear",
 		"quit",
@@ -461,6 +465,15 @@ func TestShellSupportsHelpFlags(t *testing.T) {
 	}
 	if !strings.Contains(io.Output(), "Usage: jobs list [--name NAME] [--type TYPE] [--desc DESC] [--source-id ID] [--target-id ID]") {
 		t.Fatalf("output missing jobs list usage in %q", io.Output())
+	}
+
+	io = testsupport.NewTestConsole()
+	shell = repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"config", "lang", "--help"}); err != nil {
+		t.Fatalf("ExecuteArgs(config lang --help) error = %v", err)
+	}
+	if !strings.Contains(io.Output(), "config lang commands") {
+		t.Fatalf("output missing config lang help in %q", io.Output())
 	}
 }
 
@@ -528,7 +541,7 @@ func TestShellSwitchesLanguageForFollowUpOutput(t *testing.T) {
 		consoleJobs: &fakeConsoleJobs{},
 		jobConfigs:  &fakeJobConfigs{},
 	}
-	io := testsupport.NewTestConsole("lang set zh", "help lang", "exit")
+	io := testsupport.NewTestConsole("config lang set zh", "help config", "exit")
 
 	shell := repl.NewShell(io, runtime)
 	if err := shell.Run(); err != nil {
@@ -538,8 +551,8 @@ func TestShellSwitchesLanguageForFollowUpOutput(t *testing.T) {
 	out := io.Output()
 	for _, want := range []string{
 		"语言已切换为 中文。",
-		"lang 命令",
-		"立即切换 CLI 文案语言并持久化到配置文件。",
+		"config 命令",
+		"config lang set <en|zh>",
 	} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("output missing %q in %q", want, out)
