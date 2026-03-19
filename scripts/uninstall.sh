@@ -4,6 +4,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$SCRIPT_DIR/lib/log.sh"
+
 APP_NAME="${APP_NAME:-cloudcanal}"
 BIN_PATH="$ROOT_DIR/bin/$APP_NAME"
 INSTALL_BIN_DIR="${INSTALL_BIN_DIR:-$HOME/bin}"
@@ -18,23 +20,24 @@ remove_link() {
     target="$(readlink "$INSTALL_PATH")"
     if [[ "$target" == "$BIN_PATH" ]]; then
       rm -f "$INSTALL_PATH"
-      printf 'Removed %s\n' "$INSTALL_PATH"
+      log_success "Removed $INSTALL_PATH"
       return 0
     fi
-    printf 'Skipped %s because it is not managed by this project.\n' "$INSTALL_PATH"
+    log_info "Skipped $INSTALL_PATH because it is not managed by this project"
     return 0
   fi
 
   if [[ -e "$INSTALL_PATH" ]]; then
-    printf 'Skipped %s because it is not a symlink created by this project.\n' "$INSTALL_PATH"
+    log_info "Skipped $INSTALL_PATH because it is not a symlink created by this project"
     return 0
   fi
 
-  printf 'No installed command found at %s\n' "$INSTALL_PATH"
+  log_info "No installed command found at $INSTALL_PATH"
 }
 
 remove_path_block() {
   if [[ ! -f "$INSTALL_SHELL_RC" ]] || ! grep -Fq "$PATH_MARK_START" "$INSTALL_SHELL_RC"; then
+    log_info "No PATH configuration to remove from $INSTALL_SHELL_RC"
     return 0
   fi
 
@@ -48,10 +51,12 @@ remove_path_block() {
   ' "$INSTALL_SHELL_RC" > "$tmp_file"
 
   mv "$tmp_file" "$INSTALL_SHELL_RC"
-  printf 'Updated %s\n' "$INSTALL_SHELL_RC"
+  log_success "Updated $INSTALL_SHELL_RC"
 }
 
+log_info "Uninstall $APP_NAME command"
 remove_link
 remove_path_block
 
-printf 'Uninstall finished. Open a new shell or source %s to refresh PATH.\n' "$INSTALL_SHELL_RC"
+log_info "Open a new shell or source $INSTALL_SHELL_RC to refresh PATH"
+print_run_summary "Uninstall completed"

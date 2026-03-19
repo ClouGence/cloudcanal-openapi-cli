@@ -2,14 +2,14 @@
 
 基于 Go 实现的 CloudCanal OpenAPI CLI，支持交互式使用，也支持单次命令执行。
 
-当前已支持的 `datajob` 操作：
+当前已支持这些能力：
 
-- `list`
-- `show`
-- `start`
-- `stop`
-- `delete`
-- `replay`
+- `datajob`: `list`、`show`、`schema`、`start`、`stop`、`delete`、`replay`
+- `datasource`: `list`、`show`
+- `cluster`: `list`
+- `worker`: `list`、`start`、`stop`
+- `consolejob`: `show`
+- `datajob 配置`: `specs`
 
 ## 快速开始
 
@@ -35,12 +35,6 @@
 ./scripts/uninstall.sh
 ```
 
-如果想看完整构建输出：
-
-```bash
-VERBOSE=1 ./scripts/all_build.sh
-```
-
 ## 使用方式
 
 交互模式：
@@ -54,13 +48,25 @@ cloudcanal
 ```bash
 cloudcanal jobs list
 cloudcanal jobs show 123
+cloudcanal jobs schema 123
 cloudcanal jobs replay 123 --auto-start
+cloudcanal datasources list --type MYSQL
+cloudcanal clusters list --name prod
+cloudcanal workers list --cluster-id 2
+cloudcanal consolejobs show 456
+cloudcanal job-config specs --type SYNC --initial-sync=true
 ```
 
 如果还没有执行安装脚本，也可以直接运行二进制：
 
 ```bash
 ./bin/cloudcanal jobs list
+```
+
+查看完整命令：
+
+```bash
+cloudcanal help
 ```
 
 ## 初始化配置
@@ -85,22 +91,6 @@ cloudcanal jobs replay 123 --auto-start
 
 - `apiBaseUrl` 必须是完整 URL，包含 `http://` 或 `https://`
 - `secretKey` 不会在 `config show` 中明文展示
-
-## 命令
-
-```text
-jobs list
-jobs show <jobId>
-jobs start <jobId>
-jobs stop <jobId>
-jobs delete <jobId>
-jobs replay <jobId> [--auto-start] [--reset-to-created]
-config show
-config init
-help
-exit
-quit
-```
 
 ## 开发
 

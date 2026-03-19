@@ -2,12 +2,12 @@ package datajob
 
 import (
 	"cloudcanal-openapi-cli/internal/openapi"
-	"errors"
 )
 
 const (
 	listPath   = "/cloudcanal/console/api/v1/openapi/datajob/list"
 	queryPath  = "/cloudcanal/console/api/v1/openapi/datajob/queryjob"
+	schemaPath = "/cloudcanal/console/api/v1/openapi/datajob/queryjobschemabyid"
 	startPath  = "/cloudcanal/console/api/v1/openapi/datajob/start"
 	stopPath   = "/cloudcanal/console/api/v1/openapi/datajob/stop"
 	deletePath = "/cloudcanal/console/api/v1/openapi/datajob/delete"
@@ -15,8 +15,9 @@ const (
 )
 
 type Operations interface {
-	ListJobs() ([]Job, error)
+	ListJobs(options ListOptions) ([]Job, error)
 	GetJob(jobID int64) (Job, error)
+	GetJobSchema(jobID int64) (JobSchema, error)
 	StartJob(jobID int64) error
 	StopJob(jobID int64) error
 	DeleteJob(jobID int64) error
@@ -31,9 +32,12 @@ func NewService(client *openapi.Client) *Service {
 	return &Service{client: client}
 }
 
-type response struct {
-	Code string `json:"code"`
-	Msg  string `json:"msg"`
+type ListOptions struct {
+	DataJobName      string
+	DataJobType      string
+	Desc             string
+	SourceInstanceID int64
+	TargetInstanceID int64
 }
 
 type listJobsRequest struct {
@@ -96,22 +100,38 @@ type Job struct {
 	DataTasks        []Task  `json:"dataTasks"`
 }
 
+type JobSchema struct {
+	SourceSchema          string `json:"sourceSchema"`
+	TargetSchema          string `json:"targetSchema"`
+	MappingConfig         string `json:"mappingConfig"`
+	DefaultTopic          string `json:"defaultTopic"`
+	DefaultTopicPartition int    `json:"defaultTopicPartition"`
+	SchemaWhiteListLevel  string `json:"schemaWhiteListLevel"`
+	SrcSchemaLessFormat   string `json:"srcSchemaLessFormat"`
+	DstSchemaLessFormat   string `json:"dstSchemaLessFormat"`
+}
+
 type listJobsResponse struct {
-	response
+	openapi.Response
 	Data []Job `json:"data"`
 }
 
 type queryJobResponse struct {
-	response
+	openapi.Response
 	Data Job `json:"data"`
 }
 
-func (s *Service) ListJobs() ([]Job, error) {
+type queryJobSchemaResponse struct {
+	openapi.Response
+	Data JobSchema `json:"data"`
+}
+
+func (s *Service) ListJobs(options ListOptions) ([]Job, error) {
 	var out listJobsResponse
-	if err := s.client.PostJSON(listPath, listJobsRequest{}, &out); err != nil {
+	if err := s.client.PostJSON(listPath, newListJobsRequest(options), &out); err != nil {
 		return nil, err
 	}
-	if err := ensureSuccess(out.response, "failed to list jobs"); err != nil {
+	if err := openapi.EnsureSuccess(out.Response, "failed to list jobs"); err != nil {
 		return nil, err
 	}
 	if out.Data == nil {
@@ -125,42 +145,68 @@ func (s *Service) GetJob(jobID int64) (Job, error) {
 	if err := s.client.PostJSON(queryPath, jobActionRequest{JobID: jobID}, &out); err != nil {
 		return Job{}, err
 	}
-	if err := ensureSuccess(out.response, "failed to query job"); err != nil {
+	if err := openapi.EnsureSuccess(out.Response, "failed to query job"); err != nil {
 		return Job{}, err
 	}
 	return out.Data, nil
 }
 
+func (s *Service) GetJobSchema(jobID int64) (JobSchema, error) {
+	var out queryJobSchemaResponse
+	if err := s.client.PostJSON(schemaPath, jobActionRequest{JobID: jobID}, &out); err != nil {
+		return JobSchema{}, err
+	}
+	if err := openapi.EnsureSuccess(out.Response, "failed to query job schema"); err != nil {
+		return JobSchema{}, err
+	}
+	return out.Data, nil
+}
+
 func (s *Service) StartJob(jobID int64) error {
-	var out response
+	var out openapi.Response
 	if err := s.client.PostJSON(startPath, jobActionRequest{JobID: jobID}, &out); err != nil {
 		return err
 	}
-	return ensureSuccess(out, "failed to start job")
+	return openapi.EnsureSuccess(out, "failed to start job")
 }
 
 func (s *Service) StopJob(jobID int64) error {
-	var out response
+	var out openapi.Response
 	if err := s.client.PostJSON(stopPath, jobActionRequest{JobID: jobID}, &out); err != nil {
 		return err
 	}
-	return ensureSuccess(out, "failed to stop job")
+	return openapi.EnsureSuccess(out, "failed to stop job")
 }
 
 func (s *Service) DeleteJob(jobID int64) error {
-	var out response
+	var out openapi.Response
 	if err := s.client.PostJSON(deletePath, jobActionRequest{JobID: jobID}, &out); err != nil {
 		return err
 	}
-	return ensureSuccess(out, "failed to delete job")
+	return openapi.EnsureSuccess(out, "failed to delete job")
 }
 
 func (s *Service) ReplayJob(jobID int64, options ReplayOptions) error {
-	var out response
+	var out openapi.Response
 	if err := s.client.PostJSON(replayPath, newReplayJobRequest(jobID, options), &out); err != nil {
 		return err
 	}
-	return ensureSuccess(out, "failed to replay job")
+	return openapi.EnsureSuccess(out, "failed to replay job")
+}
+
+func newListJobsRequest(options ListOptions) listJobsRequest {
+	req := listJobsRequest{
+		DataJobName: options.DataJobName,
+		DataJobType: options.DataJobType,
+		Desc:        options.Desc,
+	}
+	if options.SourceInstanceID > 0 {
+		req.SourceInstanceID = ptrInt64(options.SourceInstanceID)
+	}
+	if options.TargetInstanceID > 0 {
+		req.TargetInstanceID = ptrInt64(options.TargetInstanceID)
+	}
+	return req
 }
 
 func newReplayJobRequest(jobID int64, options ReplayOptions) replayJobRequest {
@@ -176,12 +222,6 @@ func newReplayJobRequest(jobID int64, options ReplayOptions) replayJobRequest {
 	return req
 }
 
-func ensureSuccess(resp response, fallback string) error {
-	if resp.Code == "1" {
-		return nil
-	}
-	if resp.Msg != "" {
-		return errors.New(resp.Msg)
-	}
-	return errors.New(fallback)
+func ptrInt64(value int64) *int64 {
+	return &value
 }

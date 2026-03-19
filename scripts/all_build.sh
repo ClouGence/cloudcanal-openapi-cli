@@ -4,10 +4,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$SCRIPT_DIR/lib/log.sh"
+
 BIN_DIR="$ROOT_DIR/bin"
 BIN_PATH="$BIN_DIR/cloudcanal"
 LOG_DIR="$(mktemp -d "${TMPDIR:-/tmp}/cloudcanal-openapi-cli-build.XXXXXX")"
-START_TS="$(date +%s)"
 
 cleanup() {
   rm -rf "$LOG_DIR"
@@ -21,46 +22,38 @@ run_step() {
   shift 2
 
   local log_path="$LOG_DIR/$log_name.log"
-  printf '[%s] %s\n' "$STEP_NO" "$title"
-
-  if [[ "${VERBOSE:-0}" == "1" ]]; then
-    "$@"
-    return 0
-  fi
+  log_info "[$STEP_NO] $title"
 
   if "$@" >"$log_path" 2>&1; then
+    log_success "$title completed"
     return 0
   fi
 
-  printf 'Failed: %s\n' "$title" >&2
-  printf 'Log:\n' >&2
-  cat "$log_path" >&2
+  log_error "$title failed"
+  log_error "Command output:"
+  sed 's/^/    /' "$log_path" >&2
   exit 1
 }
 
 cd "$ROOT_DIR"
 
-printf 'CloudCanal OpenAPI CLI build\n'
-printf 'Workspace: %s\n\n' "$ROOT_DIR"
+log_info "CloudCanal OpenAPI CLI build started"
 
 STEP_NO="1/3"
-printf '[%s] Clean build artifacts\n' "$STEP_NO"
+log_info "[$STEP_NO] Clean build artifacts"
 if [[ -d "$BIN_DIR" ]]; then
   rm -rf "$BIN_DIR"
-  printf 'Removed %s\n\n' "$BIN_DIR"
+  log_success "Removed $BIN_DIR"
 else
-  printf 'Nothing to clean\n\n'
+  log_success "No existing build artifacts"
 fi
 
 STEP_NO="2/3"
 run_step "Run tests" "test" go test ./...
-printf 'Tests passed\n\n'
 
 STEP_NO="3/3"
 mkdir -p "$BIN_DIR"
 run_step "Build CLI" "build" go build -o "$BIN_PATH" ./cmd/cloudcanal
-printf 'Built %s\n\n' "$BIN_PATH"
 
-ELAPSED="$(( $(date +%s) - START_TS ))"
-printf 'Done in %ss\n' "$ELAPSED"
-printf 'Tip: set VERBOSE=1 to show full command output\n'
+log_success "Binary ready at $BIN_PATH"
+print_run_summary "Build completed"
