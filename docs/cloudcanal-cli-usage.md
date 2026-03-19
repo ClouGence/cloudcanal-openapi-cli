@@ -23,6 +23,20 @@ cloudcanal datasources list --type MYSQL
 ./bin/cloudcanal jobs list
 ```
 
+一键安装：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_install.sh | bash
+```
+
+说明：
+
+- 当前一键安装会下载 GitHub 源码归档并在本机编译
+- 因此仍然要求本机已安装 `Go 1.25+`
+- 默认会把源码安装到 `~/.local/share/cloudcanal-openapi-cli/repository`
+- 之后会继续复用仓库内的 `scripts/install.sh` 完成命令、PATH 和补全安装
+- 如果通过一键安装方式卸载，可执行 `~/.local/share/cloudcanal-openapi-cli/repository/scripts/uninstall.sh`
+
 ## 初始化配置
 
 首次启动会进入初始化向导，配置文件默认保存到：

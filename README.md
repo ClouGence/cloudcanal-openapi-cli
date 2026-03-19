@@ -24,6 +24,15 @@
 
 安装脚本会同时安装 zsh / bash 的 TAB 补全文件。
 
+一键安装：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_install.sh | bash
+```
+
+这个一键安装脚本会下载源码归档并在本机编译，所以仍然需要本机已有 Go 1.25+。
+安装后的仓库默认会落在 `~/.local/share/cloudcanal-openapi-cli/repository`。
+
 卸载：
 
 ```bash
