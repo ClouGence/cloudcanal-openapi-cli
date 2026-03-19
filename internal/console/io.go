@@ -2,6 +2,7 @@ package console
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -125,6 +126,10 @@ func (s *StdIO) Close() error {
 		return nil
 	}
 	return s.liner.Close()
+}
+
+func IsPromptAborted(err error) bool {
+	return errors.Is(err, liner.ErrPromptAborted)
 }
 
 func trimLine(line string) string {

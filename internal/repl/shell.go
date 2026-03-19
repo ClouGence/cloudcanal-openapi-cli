@@ -43,6 +43,10 @@ func (s *Shell) Run() error {
 				s.io.Println("")
 				return nil
 			}
+			if console.IsPromptAborted(err) {
+				s.io.Println("")
+				continue
+			}
 			return err
 		}
 

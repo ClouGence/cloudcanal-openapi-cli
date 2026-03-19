@@ -14,6 +14,7 @@ import (
 	"cloudcanal-openapi-cli/internal/worker"
 	"cloudcanal-openapi-cli/test/testsupport"
 	"encoding/json"
+	"github.com/peterh/liner"
 	"strings"
 	"testing"
 )
@@ -295,6 +296,37 @@ func TestShellExecutesArgsWithoutInteractiveLoop(t *testing.T) {
 	}
 }
 
+func TestShellShowsGroupedUsageOnSeparateLines(t *testing.T) {
+	runtime := &fakeRuntime{
+		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
+		dataJobs:    &fakeDataJobs{},
+		dataSources: &fakeDataSources{},
+		clusters:    &fakeClusters{},
+		workers:     &fakeWorkers{},
+		consoleJobs: &fakeConsoleJobs{},
+		jobConfigs:  &fakeJobConfigs{},
+	}
+	io := testsupport.NewTestConsole()
+
+	shell := repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"jobs"}); err != nil {
+		t.Fatalf("ExecuteArgs(jobs) error = %v", err)
+	}
+
+	out := io.Output()
+	for _, want := range []string{
+		"Usage:",
+		"  jobs list",
+		"  jobs show <jobId>",
+		"  jobs schema <jobId>",
+		"  jobs replay <jobId> [--auto-start] [--reset-to-created]",
+	} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("output missing %q in %q", want, out)
+		}
+	}
+}
+
 func TestShellClearsScreenWithAliases(t *testing.T) {
 	runtime := &fakeRuntime{
 		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
@@ -322,6 +354,32 @@ func TestShellClearsScreenWithAliases(t *testing.T) {
 	}
 	if !strings.Contains(io.Output(), "\x1b[H\x1b[2J") {
 		t.Fatalf("output missing clear sequence in %q", io.Output())
+	}
+}
+
+func TestShellIgnoresPromptAbortInInteractiveMode(t *testing.T) {
+	runtime := &fakeRuntime{
+		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
+		dataJobs:    &fakeDataJobs{},
+		dataSources: &fakeDataSources{},
+		clusters:    &fakeClusters{},
+		workers:     &fakeWorkers{},
+		consoleJobs: &fakeConsoleJobs{},
+		jobConfigs:  &fakeJobConfigs{},
+	}
+	io := &abortingConsole{}
+
+	shell := repl.NewShell(io, runtime)
+	if err := shell.Run(); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	out := io.Output()
+	if strings.Contains(out, "prompt aborted") || strings.Contains(out, "Fatal error") {
+		t.Fatalf("output should not contain prompt abort error in %q", out)
+	}
+	if got := strings.Count(out, "cloudcanal> "); got != 2 {
+		t.Fatalf("prompt count = %d, want 2 in %q", got, out)
 	}
 }
 
@@ -554,6 +612,38 @@ type fakeRuntime struct {
 	jobConfigs        jobconfig.Operations
 	reinitializeCalls int
 	reinitializeValue bool
+}
+
+type abortingConsole struct {
+	output  strings.Builder
+	aborted bool
+}
+
+func (a *abortingConsole) ReadLine(prompt string) (string, error) {
+	a.output.WriteString(prompt)
+	if !a.aborted {
+		a.aborted = true
+		return "", liner.ErrPromptAborted
+	}
+	return "exit", nil
+}
+
+func (a *abortingConsole) ReadSecret(prompt string) (string, error) {
+	a.output.WriteString(prompt)
+	return "", liner.ErrPromptAborted
+}
+
+func (a *abortingConsole) Println(text string) {
+	a.output.WriteString(text)
+	a.output.WriteString("\n")
+}
+
+func (a *abortingConsole) ClearScreen() {
+	a.output.WriteString("\033[H\033[2J")
+}
+
+func (a *abortingConsole) Output() string {
+	return a.output.String()
 }
 
 func (f *fakeRuntime) Config() config.AppConfig {

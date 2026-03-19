@@ -14,18 +14,45 @@ func (s *Shell) isChinese() bool {
 	return i18n.CurrentLanguage() == i18n.Chinese
 }
 
+func usageBlock(title string, commands ...string) string {
+	lines := make([]string, 0, len(commands)+1)
+	lines = append(lines, title)
+	for _, command := range commands {
+		lines = append(lines, "  "+command)
+	}
+	return strings.Join(lines, "\n")
+}
+
 func (s *Shell) usageConfig() string {
 	if s.isChinese() {
-		return "用法：config show | config init"
+		return usageBlock("用法：", "config show", "config init")
 	}
-	return "Usage: config show | config init"
+	return usageBlock("Usage:", "config show", "config init")
 }
 
 func (s *Shell) usageJobsGroup() string {
 	if s.isChinese() {
-		return "用法：jobs list | jobs show <jobId> | jobs schema <jobId> | jobs start <jobId> | jobs stop <jobId> | jobs delete <jobId> | jobs replay <jobId> [--auto-start] [--reset-to-created]"
+		return usageBlock(
+			"用法：",
+			"jobs list",
+			"jobs show <jobId>",
+			"jobs schema <jobId>",
+			"jobs start <jobId>",
+			"jobs stop <jobId>",
+			"jobs delete <jobId>",
+			"jobs replay <jobId> [--auto-start] [--reset-to-created]",
+		)
 	}
-	return "Usage: jobs list | jobs show <jobId> | jobs schema <jobId> | jobs start <jobId> | jobs stop <jobId> | jobs delete <jobId> | jobs replay <jobId> [--auto-start] [--reset-to-created]"
+	return usageBlock(
+		"Usage:",
+		"jobs list",
+		"jobs show <jobId>",
+		"jobs schema <jobId>",
+		"jobs start <jobId>",
+		"jobs stop <jobId>",
+		"jobs delete <jobId>",
+		"jobs replay <jobId> [--auto-start] [--reset-to-created]",
+	)
 }
 
 func (s *Shell) usageJobsList() string {
@@ -51,9 +78,17 @@ func (s *Shell) usageJobReplay() string {
 
 func (s *Shell) usageDataSources() string {
 	if s.isChinese() {
-		return "用法：datasources list [--id ID] [--type TYPE] [--deploy-type TYPE] [--host-type TYPE] [--lifecycle STATE] | datasources show <dataSourceId>"
+		return usageBlock(
+			"用法：",
+			"datasources list [--id ID] [--type TYPE] [--deploy-type TYPE] [--host-type TYPE] [--lifecycle STATE]",
+			"datasources show <dataSourceId>",
+		)
 	}
-	return "Usage: datasources list [--id ID] [--type TYPE] [--deploy-type TYPE] [--host-type TYPE] [--lifecycle STATE] | datasources show <dataSourceId>"
+	return usageBlock(
+		"Usage:",
+		"datasources list [--id ID] [--type TYPE] [--deploy-type TYPE] [--host-type TYPE] [--lifecycle STATE]",
+		"datasources show <dataSourceId>",
+	)
 }
 
 func (s *Shell) usageDataSourcesList() string {
@@ -86,9 +121,19 @@ func (s *Shell) usageClustersList() string {
 
 func (s *Shell) usageWorkers() string {
 	if s.isChinese() {
-		return "用法：workers list --cluster-id ID [--source-id ID] [--target-id ID] | workers start <workerId> | workers stop <workerId>"
+		return usageBlock(
+			"用法：",
+			"workers list --cluster-id ID [--source-id ID] [--target-id ID]",
+			"workers start <workerId>",
+			"workers stop <workerId>",
+		)
 	}
-	return "Usage: workers list --cluster-id ID [--source-id ID] [--target-id ID] | workers start <workerId> | workers stop <workerId>"
+	return usageBlock(
+		"Usage:",
+		"workers list --cluster-id ID [--source-id ID] [--target-id ID]",
+		"workers start <workerId>",
+		"workers stop <workerId>",
+	)
 }
 
 func (s *Shell) usageWorkersList() string {
