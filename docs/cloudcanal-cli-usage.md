@@ -50,7 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 首次启动会进入初始化向导，配置文件默认保存到：
 
 ```text
-~/.cloudcanal/config.json
+~/.cloudcanal-cli/config.json
 ```
 
 配置格式：

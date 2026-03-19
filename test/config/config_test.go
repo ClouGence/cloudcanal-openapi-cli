@@ -77,3 +77,70 @@ func TestConfigNetworkSettingsDefaultsAndValidation(t *testing.T) {
 		t.Fatal("Validate() error = nil, want non-nil for negative retry count")
 	}
 }
+
+func TestDefaultPathUsesCloudCanalCLIDirectory(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	got := config.DefaultPath()
+	want := filepath.Join(home, ".cloudcanal-cli", "config.json")
+	if got != want {
+		t.Fatalf("DefaultPath() = %q, want %q", got, want)
+	}
+}
+
+func TestServiceLoadMigratesLegacyDefaultConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	legacyPath := config.LegacyDefaultPath()
+	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	content := []byte(`{"apiBaseUrl":"https://cc.example.com","accessKey":"legacy-ak","secretKey":"legacy-sk","language":"zh"}`)
+	if err := os.WriteFile(legacyPath, content, 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	service := config.NewService("")
+	if !service.Exists() {
+		t.Fatal("Exists() = false, want true when only legacy config exists")
+	}
+
+	loaded, err := service.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if loaded.APIBaseURL != "https://cc.example.com" || loaded.AccessKey != "legacy-ak" || loaded.SecretKey != "legacy-sk" || loaded.Language != "zh" {
+		t.Fatalf("loaded config = %+v, want legacy values", loaded)
+	}
+
+	newPath := config.DefaultPath()
+	if _, err := os.Stat(newPath); err != nil {
+		t.Fatalf("new config path stat error = %v", err)
+	}
+	if _, err := os.Stat(legacyPath); !os.IsNotExist(err) {
+		t.Fatalf("legacy config still exists, stat err = %v", err)
+	}
+}
+
+func TestServiceLoadWithCustomPathDoesNotReadLegacyConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	legacyPath := config.LegacyDefaultPath()
+	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	if err := os.WriteFile(legacyPath, []byte(`{"apiBaseUrl":"https://cc.example.com","accessKey":"legacy-ak","secretKey":"legacy-sk"}`), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	service := config.NewService(filepath.Join(t.TempDir(), "config.json"))
+	if service.Exists() {
+		t.Fatal("Exists() = true, want false for custom path without file")
+	}
+	if _, err := service.Load(); !os.IsNotExist(err) {
+		t.Fatalf("Load() error = %v, want os.ErrNotExist", err)
+	}
+}

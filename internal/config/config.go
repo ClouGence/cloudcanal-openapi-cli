@@ -111,17 +111,28 @@ func (c AppConfig) HTTPReadRetryBackoffMillisValue() int {
 }
 
 type Service struct {
-	path string
+	path           string
+	defaultManaged bool
 }
 
 func NewService(path string) *Service {
+	defaultManaged := false
 	if strings.TrimSpace(path) == "" {
 		path = DefaultPath()
+		defaultManaged = true
 	}
-	return &Service{path: path}
+	return &Service{path: path, defaultManaged: defaultManaged}
 }
 
 func DefaultPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ".cloudcanal-cli/config.json"
+	}
+	return filepath.Join(home, ".cloudcanal-cli", "config.json")
+}
+
+func LegacyDefaultPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ".cloudcanal/config.json"
@@ -135,15 +146,32 @@ func (s *Service) Path() string {
 
 func (s *Service) Exists() bool {
 	_, err := os.Stat(s.path)
-	return err == nil
+	if err == nil {
+		return true
+	}
+	if s.defaultManaged {
+		_, legacyErr := os.Stat(LegacyDefaultPath())
+		return legacyErr == nil
+	}
+	return false
 }
 
 func (s *Service) Load() (AppConfig, error) {
-	data, err := os.ReadFile(s.path)
+	cfg, err := s.loadFromPath(s.path)
+	if err == nil {
+		return cfg, nil
+	}
+	if s.defaultManaged && errors.Is(err, os.ErrNotExist) {
+		return s.loadFromLegacyPath()
+	}
+	return AppConfig{}, err
+}
+
+func (s *Service) loadFromPath(path string) (AppConfig, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return AppConfig{}, err
 	}
-
 	var cfg AppConfig
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return AppConfig{}, errors.New(i18n.T("config.invalidJSON"))
@@ -151,6 +179,19 @@ func (s *Service) Load() (AppConfig, error) {
 	cfg = cfg.WithDefaults()
 	if err := cfg.Validate(); err != nil {
 		return AppConfig{}, err
+	}
+	return cfg, nil
+}
+
+func (s *Service) loadFromLegacyPath() (AppConfig, error) {
+	legacyPath := LegacyDefaultPath()
+	cfg, err := s.loadFromPath(legacyPath)
+	if err != nil {
+		return AppConfig{}, err
+	}
+	if err := s.Save(cfg); err == nil {
+		_ = os.Remove(legacyPath)
+		_ = os.Remove(filepath.Dir(legacyPath))
 	}
 	return cfg, nil
 }

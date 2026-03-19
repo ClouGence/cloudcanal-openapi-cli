@@ -8,7 +8,11 @@ source "$SCRIPT_DIR/lib/log.sh"
 
 BIN_DIR="$ROOT_DIR/bin"
 BIN_PATH="$BIN_DIR/cloudcanal"
-LOG_DIR="$(mktemp -d "${TMPDIR:-/tmp}/cloudcanal-openapi-cli-build.XXXXXX")"
+CLI_HOME_DIR="${HOME}/.cloudcanal-cli"
+LOG_ROOT_DIR="${CLI_HOME_DIR}/logs"
+
+mkdir -p "$LOG_ROOT_DIR"
+LOG_DIR="$(mktemp -d "${LOG_ROOT_DIR}/cloudcanal-openapi-cli-build.XXXXXX")"
 
 cleanup() {
   rm -rf "$LOG_DIR"

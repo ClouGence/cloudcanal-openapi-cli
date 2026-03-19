@@ -55,7 +55,7 @@ cloudcanal jobs list --type SYNC --output json
 配置文件默认保存在：
 
 ```text
-~/.cloudcanal/config.json
+~/.cloudcanal-cli/config.json
 ```
 
 最小配置示例：
