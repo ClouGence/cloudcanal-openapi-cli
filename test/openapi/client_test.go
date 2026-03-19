@@ -109,3 +109,132 @@ func TestClientReturnsErrorWhenConnectionFails(t *testing.T) {
 		t.Fatal("PostJSON() error = nil, want non-nil")
 	}
 }
+
+func TestProbeAuthenticationAcceptsPermissionDeniedResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"code":"0","msg":"permission denied for datajob list"}`))
+	}))
+	defer server.Close()
+
+	client, err := openapi.NewClient(config.AppConfig{
+		APIBaseURL: server.URL,
+		AccessKey:  "test-ak",
+		SecretKey:  "test-sk",
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	if err := client.ProbeAuthentication(); err != nil {
+		t.Fatalf("ProbeAuthentication() error = %v, want nil", err)
+	}
+}
+
+func TestProbeAuthenticationRejectsInvalidSignatureStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(497)
+		_, _ = w.Write([]byte(`{"code":"0","msg":"invalid signature"}`))
+	}))
+	defer server.Close()
+
+	client, err := openapi.NewClient(config.AppConfig{
+		APIBaseURL: server.URL,
+		AccessKey:  "test-ak",
+		SecretKey:  "test-sk",
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	err = client.ProbeAuthentication()
+	if err == nil {
+		t.Fatal("ProbeAuthentication() error = nil, want non-nil")
+	}
+	if got := err.Error(); got != "invalid signature" {
+		t.Fatalf("error = %q, want invalid signature", got)
+	}
+}
+
+func TestProbeAuthenticationRejectsUnexpectedApplicationFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"code":"0","msg":"backend not ready"}`))
+	}))
+	defer server.Close()
+
+	client, err := openapi.NewClient(config.AppConfig{
+		APIBaseURL: server.URL,
+		AccessKey:  "test-ak",
+		SecretKey:  "test-sk",
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	err = client.ProbeAuthentication()
+	if err == nil {
+		t.Fatal("ProbeAuthentication() error = nil, want non-nil")
+	}
+	if got := err.Error(); got != "OpenAPI probe failed: backend not ready" {
+		t.Fatalf("error = %q, want probe failure message", got)
+	}
+}
+
+func TestClientRetriesRetryableRequestsOnServerFailure(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if attempts < 3 {
+			http.Error(w, "temporary failure", http.StatusBadGateway)
+			return
+		}
+		_, _ = w.Write([]byte(`{"code":"1","msg":"ok"}`))
+	}))
+	defer server.Close()
+
+	client, err := openapi.NewClient(config.AppConfig{
+		APIBaseURL:                 server.URL,
+		AccessKey:                  "test-ak",
+		SecretKey:                  "test-sk",
+		HTTPReadMaxRetries:         2,
+		HTTPReadRetryBackoffMillis: 1,
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	var response map[string]string
+	if err := client.PostJSONWithOptions("/cloudcanal/console/api/v1/openapi/datajob/list", map[string]any{}, &response, openapi.RequestOptions{Retryable: true}); err != nil {
+		t.Fatalf("PostJSONWithOptions() error = %v", err)
+	}
+	if attempts != 3 {
+		t.Fatalf("attempts = %d, want 3", attempts)
+	}
+}
+
+func TestClientDoesNotRetryNonRetryableRequests(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		http.Error(w, "temporary failure", http.StatusBadGateway)
+	}))
+	defer server.Close()
+
+	client, err := openapi.NewClient(config.AppConfig{
+		APIBaseURL:                 server.URL,
+		AccessKey:                  "test-ak",
+		SecretKey:                  "test-sk",
+		HTTPReadMaxRetries:         2,
+		HTTPReadRetryBackoffMillis: 1,
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	err = client.PostJSON("/cloudcanal/console/api/v1/openapi/datajob/start", map[string]any{"jobId": 1}, &map[string]any{})
+	if err == nil {
+		t.Fatal("PostJSON() error = nil, want non-nil")
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts = %d, want 1", attempts)
+	}
+}

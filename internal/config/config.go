@@ -8,13 +8,22 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+)
+
+const (
+	defaultHTTPTimeoutSeconds         = 10
+	defaultHTTPReadRetryBackoffMillis = 250
 )
 
 type AppConfig struct {
-	APIBaseURL string `json:"apiBaseUrl"`
-	AccessKey  string `json:"accessKey"`
-	SecretKey  string `json:"secretKey"`
-	Language   string `json:"language,omitempty"`
+	APIBaseURL                 string `json:"apiBaseUrl"`
+	AccessKey                  string `json:"accessKey"`
+	SecretKey                  string `json:"secretKey"`
+	Language                   string `json:"language,omitempty"`
+	HTTPTimeoutSeconds         int    `json:"httpTimeoutSeconds,omitempty"`
+	HTTPReadMaxRetries         int    `json:"httpReadMaxRetries,omitempty"`
+	HTTPReadRetryBackoffMillis int    `json:"httpReadRetryBackoffMillis,omitempty"`
 }
 
 func (c AppConfig) Validate() error {
@@ -30,6 +39,15 @@ func (c AppConfig) Validate() error {
 	}
 	if normalized := i18n.NormalizeLanguage(c.Language); normalized == "" && strings.TrimSpace(c.Language) != "" {
 		return errors.New(i18n.T("config.languageUnsupported"))
+	}
+	if c.HTTPTimeoutSeconds < 0 {
+		return errors.New(i18n.TFor(language, "config.httpTimeoutSecondsInvalid"))
+	}
+	if c.HTTPReadMaxRetries < 0 {
+		return errors.New(i18n.TFor(language, "config.httpReadMaxRetriesInvalid"))
+	}
+	if c.HTTPReadRetryBackoffMillis < 0 {
+		return errors.New(i18n.TFor(language, "config.httpReadRetryBackoffMillisInvalid"))
 	}
 
 	parsed, err := url.Parse(strings.TrimSpace(c.APIBaseURL))
@@ -61,6 +79,35 @@ func (c AppConfig) NormalizedLanguage() string {
 func (c AppConfig) WithDefaults() AppConfig {
 	c.Language = c.NormalizedLanguage()
 	return c
+}
+
+func (c AppConfig) HTTPTimeout() time.Duration {
+	return time.Duration(c.HTTPTimeoutSecondsValue()) * time.Second
+}
+
+func (c AppConfig) HTTPTimeoutSecondsValue() int {
+	if c.HTTPTimeoutSeconds <= 0 {
+		return defaultHTTPTimeoutSeconds
+	}
+	return c.HTTPTimeoutSeconds
+}
+
+func (c AppConfig) HTTPReadMaxRetriesValue() int {
+	if c.HTTPReadMaxRetries <= 0 {
+		return 0
+	}
+	return c.HTTPReadMaxRetries
+}
+
+func (c AppConfig) HTTPReadRetryBackoff() time.Duration {
+	return time.Duration(c.HTTPReadRetryBackoffMillisValue()) * time.Millisecond
+}
+
+func (c AppConfig) HTTPReadRetryBackoffMillisValue() int {
+	if c.HTTPReadRetryBackoffMillis <= 0 {
+		return defaultHTTPReadRetryBackoffMillis
+	}
+	return c.HTTPReadRetryBackoffMillis
 }
 
 type Service struct {

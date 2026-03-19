@@ -55,3 +55,25 @@ func TestServiceRejectsMissingField(t *testing.T) {
 		t.Fatal("Load() error = nil, want non-nil")
 	}
 }
+
+func TestConfigNetworkSettingsDefaultsAndValidation(t *testing.T) {
+	cfg := config.AppConfig{
+		APIBaseURL: "https://cc.example.com",
+		AccessKey:  "access-key",
+		SecretKey:  "secret-key",
+	}
+	if got := cfg.HTTPTimeoutSecondsValue(); got != 10 {
+		t.Fatalf("HTTPTimeoutSecondsValue() = %d, want 10", got)
+	}
+	if got := cfg.HTTPReadMaxRetriesValue(); got != 0 {
+		t.Fatalf("HTTPReadMaxRetriesValue() = %d, want 0", got)
+	}
+	if got := cfg.HTTPReadRetryBackoffMillisValue(); got != 250 {
+		t.Fatalf("HTTPReadRetryBackoffMillisValue() = %d, want 250", got)
+	}
+
+	cfg.HTTPReadMaxRetries = -1
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want non-nil for negative retry count")
+	}
+}

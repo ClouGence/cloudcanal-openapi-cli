@@ -54,19 +54,18 @@ func (s *Shell) handleJobs(tokens []string) error {
 			if err := s.runtime.DataJobs().StartJob(jobID); err != nil {
 				return err
 			}
-			s.io.Println(s.actionMessage("job.started", jobID))
+			return s.printActionResult("job.started", "job", "started", jobID)
 		case "stop":
 			if err := s.runtime.DataJobs().StopJob(jobID); err != nil {
 				return err
 			}
-			s.io.Println(s.actionMessage("job.stopped", jobID))
+			return s.printActionResult("job.stopped", "job", "stopped", jobID)
 		default:
 			if err := s.runtime.DataJobs().DeleteJob(jobID); err != nil {
 				return err
 			}
-			s.io.Println(s.actionMessage("job.deleted", jobID))
+			return s.printActionResult("job.deleted", "job", "deleted", jobID)
 		}
-		return nil
 	case "replay":
 		if len(tokens) < 3 {
 			s.io.Println(s.usageJobReplay())
@@ -83,8 +82,7 @@ func (s *Shell) handleJobs(tokens []string) error {
 		if err := s.runtime.DataJobs().ReplayJob(jobID, options); err != nil {
 			return err
 		}
-		s.io.Println(s.actionMessage("job.replayed", jobID))
-		return nil
+		return s.printActionResult("job.replayed", "job", "replayed", jobID)
 	default:
 		s.io.Println(s.usageJobsGroup())
 		return nil
@@ -95,6 +93,9 @@ func (s *Shell) printJobs(options datajob.ListOptions) error {
 	jobs, err := s.runtime.DataJobs().ListJobs(options)
 	if err != nil {
 		return err
+	}
+	if s.isJSONOutput() {
+		return s.printJSON(jobs)
 	}
 
 	headers := []string{s.label("id"), s.label("name"), s.label("type"), s.label("state"), s.label("source"), s.label("target")}
@@ -119,6 +120,9 @@ func (s *Shell) printJob(jobID int64) error {
 	job, err := s.runtime.DataJobs().GetJob(jobID)
 	if err != nil {
 		return err
+	}
+	if s.isJSONOutput() {
+		return s.printJSON(job)
 	}
 
 	s.io.Println(s.sectionTitle("job.details"))
@@ -161,6 +165,12 @@ func (s *Shell) printJobSchema(jobID int64) error {
 	schema, err := s.runtime.DataJobs().GetJobSchema(jobID)
 	if err != nil {
 		return err
+	}
+	if s.isJSONOutput() {
+		return s.printJSON(map[string]any{
+			"jobId":  jobID,
+			"schema": schema,
+		})
 	}
 
 	s.io.Println(s.sectionTitle("job.schema"))

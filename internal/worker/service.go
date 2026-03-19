@@ -63,7 +63,7 @@ type listResponse struct {
 
 func (s *Service) List(options ListOptions) ([]Worker, error) {
 	var out listResponse
-	if err := s.client.PostJSON(listPath, newListRequest(options), &out); err != nil {
+	if err := s.client.PostJSONWithOptions(listPath, newListRequest(options), &out, openapi.RequestOptions{Retryable: true}); err != nil {
 		return nil, err
 	}
 	if err := openapi.EnsureSuccess(out.Response, "failed to list workers"); err != nil {

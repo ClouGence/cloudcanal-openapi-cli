@@ -118,9 +118,7 @@ func (r *Runtime) validateConfig(cfg config.AppConfig) error {
 	if err != nil {
 		return err
 	}
-	service := datajob.NewService(client)
-	_, err = service.ListJobs(datajob.ListOptions{})
-	return err
+	return client.ProbeAuthentication()
 }
 
 func (r *Runtime) activate(cfg config.AppConfig) error {

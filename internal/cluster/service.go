@@ -49,12 +49,12 @@ type listResponse struct {
 
 func (s *Service) List(options ListOptions) ([]Cluster, error) {
 	var out listResponse
-	if err := s.client.PostJSON(listPath, listRequest{
+	if err := s.client.PostJSONWithOptions(listPath, listRequest{
 		CloudOrIDCName: options.CloudOrIDCName,
 		ClusterDesc:    options.ClusterDesc,
 		ClusterName:    options.ClusterName,
 		Region:         options.Region,
-	}, &out); err != nil {
+	}, &out, openapi.RequestOptions{Retryable: true}); err != nil {
 		return nil, err
 	}
 	if err := openapi.EnsureSuccess(out.Response, "failed to list clusters"); err != nil {

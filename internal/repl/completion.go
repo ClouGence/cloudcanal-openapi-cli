@@ -44,7 +44,8 @@ var (
 		"language",
 		"completion",
 	}
-	boolValues = []string{"true", "false"}
+	boolValues   = []string{"true", "false"}
+	outputValues = []string{"text", "json"}
 )
 
 func RenderCompletionScript(args []string) (string, error) {
@@ -105,9 +106,15 @@ func (s *Shell) printHiddenCompletions(args []string) {
 
 func completeContext(context []string, prefix string, replMode bool) []string {
 	if len(context) == 0 {
+		if name, valuePrefix, ok := splitInlineFlag(prefix); ok && name == "--output" {
+			return prependInlineFlag(name, matchCandidates(outputValues, valuePrefix))
+		}
 		candidates := append([]string{}, topLevelCommands...)
 		if replMode {
 			candidates = append(candidates, replOnlyCommands...)
+		}
+		if prefix == "" || strings.HasPrefix(prefix, "--") {
+			candidates = append(candidates, "--output")
 		}
 		return matchCandidates(candidates, prefix)
 	}
@@ -140,18 +147,18 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 		}
 		switch strings.ToLower(context[1]) {
 		case "list":
-			return completeFlags(context[2:], prefix, []flagSpec{
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
 				{name: "--name"},
 				{name: "--type"},
 				{name: "--desc"},
 				{name: "--source-id"},
 				{name: "--target-id"},
-			})
+			}))
 		case "replay":
-			return completeFlags(context[2:], prefix, []flagSpec{
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
 				{name: "--auto-start", values: boolValues},
 				{name: "--reset-to-created", values: boolValues},
-			})
+			}))
 		}
 		return nil
 	case "datasources":
@@ -159,13 +166,13 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 			return matchCandidates([]string{"list", "show"}, prefix)
 		}
 		if strings.EqualFold(context[1], "list") {
-			return completeFlags(context[2:], prefix, []flagSpec{
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
 				{name: "--id"},
 				{name: "--type"},
 				{name: "--deploy-type"},
 				{name: "--host-type"},
 				{name: "--lifecycle"},
-			})
+			}))
 		}
 		return nil
 	case "clusters":
@@ -173,12 +180,12 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 			return matchCandidates([]string{"list"}, prefix)
 		}
 		if strings.EqualFold(context[1], "list") {
-			return completeFlags(context[2:], prefix, []flagSpec{
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
 				{name: "--name"},
 				{name: "--desc"},
 				{name: "--cloud"},
 				{name: "--region"},
-			})
+			}))
 		}
 		return nil
 	case "workers":
@@ -186,11 +193,11 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 			return matchCandidates([]string{"list", "start", "stop"}, prefix)
 		}
 		if strings.EqualFold(context[1], "list") {
-			return completeFlags(context[2:], prefix, []flagSpec{
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
 				{name: "--cluster-id"},
 				{name: "--source-id"},
 				{name: "--target-id"},
-			})
+			}))
 		}
 		return nil
 	case "consolejobs":
@@ -203,11 +210,11 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 			return matchCandidates([]string{"specs"}, prefix)
 		}
 		if strings.EqualFold(context[1], "specs") {
-			return completeFlags(context[2:], prefix, []flagSpec{
+			return completeFlags(context[2:], prefix, withGlobalFlags([]flagSpec{
 				{name: "--type"},
 				{name: "--initial-sync", values: boolValues},
 				{name: "--short-term-sync", values: boolValues},
-			})
+			}))
 		}
 		return nil
 	default:
@@ -243,6 +250,13 @@ func completeFlags(args []string, prefix string, specs []flagSpec) []string {
 	}
 
 	return nil
+}
+
+func withGlobalFlags(specs []flagSpec) []flagSpec {
+	combined := make([]flagSpec, 0, len(specs)+1)
+	combined = append(combined, specs...)
+	combined = append(combined, flagSpec{name: "--output", values: outputValues})
+	return combined
 }
 
 func valuesForPreviousFlag(previousToken string, prefix string, specs []flagSpec) ([]string, bool) {

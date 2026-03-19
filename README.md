@@ -32,6 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 ```
 
 这个一键安装脚本会从 GitHub Releases 下载预编译二进制，不需要本机安装 Go。
+下载后会自动校验 release 中的 `checksums.txt`，再执行安装。
 默认会把二进制安装到 `~/.local/share/cloudcanal-openapi-cli/bin/cloudcanal`。
 
 一键卸载：
@@ -49,10 +50,29 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 ## 使用方式
 
 详细命令、参数和示例请看上面的使用说明文档。
+如需机器可读输出，可以在命令后追加 `--output json`，例如：
+
+```bash
+cloudcanal jobs list --type SYNC --output json
+```
 
 ## 初始化配置
 
 第一次启动会进入初始化向导，配置文件保存到 `~/.cloudcanal/config.json`。配置格式、字段含义和命令参数说明见详细文档。
+
+高级网络选项也可以直接写进配置文件：
+
+```json
+{
+  "apiBaseUrl": "https://cc.example.com",
+  "accessKey": "your-ak",
+  "secretKey": "your-sk",
+  "language": "en",
+  "httpTimeoutSeconds": 15,
+  "httpReadMaxRetries": 2,
+  "httpReadRetryBackoffMillis": 300
+}
+```
 
 ## 开发
 
@@ -60,6 +80,7 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 
 - 推送 tag，例如 `v0.1.0`
 - GitHub Actions 会自动构建并发布 `darwin/linux + amd64/arm64` 的 release 资产
+- Release 会同时生成 `checksums.txt`，供一键安装脚本做完整性校验
 
 只编译：
 

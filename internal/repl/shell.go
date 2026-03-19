@@ -6,19 +6,21 @@ import (
 	"cloudcanal-openapi-cli/internal/i18n"
 	"cloudcanal-openapi-cli/internal/util"
 	"io"
+	"strconv"
 	"strings"
 )
 
 const prompt = "cloudcanal> "
 
 type Shell struct {
-	io      console.IO
-	runtime app.RuntimeContext
+	io           console.IO
+	runtime      app.RuntimeContext
+	outputFormat outputFormat
 }
 
 func NewShell(io console.IO, runtime app.RuntimeContext) *Shell {
 	_ = i18n.SetLanguage(runtime.Config().NormalizedLanguage())
-	shell := &Shell{io: io, runtime: runtime}
+	shell := &Shell{io: io, runtime: runtime, outputFormat: outputText}
 	if completable, ok := io.(console.TabCompletable); ok {
 		completable.SetCompleter(shell.completeLine)
 	}
@@ -54,7 +56,7 @@ func (s *Shell) Run() error {
 		}
 
 		if err := s.handle(line); err != nil {
-			s.io.Println(i18n.T("common.errorPrefix", util.SummarizeError(err)))
+			s.PrintError(err)
 		}
 	}
 }
@@ -68,9 +70,19 @@ func (s *Shell) handle(commandLine string) error {
 }
 
 func (s *Shell) handleTokens(tokens []string, commandLine string) error {
+	filteredTokens, format, err := extractOutputFormat(tokens)
+	if err != nil {
+		return wrapCommandError(err, outputText)
+	}
+	tokens = filteredTokens
 	if len(tokens) == 0 {
 		return nil
 	}
+	previousFormat := s.outputFormat
+	s.outputFormat = format
+	defer func() {
+		s.outputFormat = previousFormat
+	}()
 
 	switch strings.ToLower(tokens[0]) {
 	case "help":
@@ -80,26 +92,26 @@ func (s *Shell) handleTokens(tokens []string, commandLine string) error {
 		s.io.ClearScreen()
 		return nil
 	case "completion":
-		return s.handleCompletion(tokens)
+		return wrapCommandError(s.handleCompletion(tokens), format)
 	case "__complete":
 		s.printHiddenCompletions(tokens[1:])
 		return nil
 	case "jobs":
-		return s.handleJobs(tokens)
+		return wrapCommandError(s.handleJobs(tokens), format)
 	case "datasources":
-		return s.handleDataSources(tokens)
+		return wrapCommandError(s.handleDataSources(tokens), format)
 	case "clusters":
-		return s.handleClusters(tokens)
+		return wrapCommandError(s.handleClusters(tokens), format)
 	case "workers":
-		return s.handleWorkers(tokens)
+		return wrapCommandError(s.handleWorkers(tokens), format)
 	case "consolejobs":
-		return s.handleConsoleJobs(tokens)
+		return wrapCommandError(s.handleConsoleJobs(tokens), format)
 	case "job-config", "jobconfig":
-		return s.handleJobConfig(tokens)
+		return wrapCommandError(s.handleJobConfig(tokens), format)
 	case "config":
-		return s.handleConfig(tokens)
+		return wrapCommandError(s.handleConfig(tokens), format)
 	case "lang", "language":
-		return s.handleLang(tokens)
+		return wrapCommandError(s.handleLang(tokens), format)
 	default:
 		s.io.Println(i18n.T("common.unknownCommand", commandLine))
 		s.io.Println(i18n.T("common.useHelp"))
@@ -115,9 +127,22 @@ func (s *Shell) handleConfig(tokens []string) error {
 	switch strings.ToLower(tokens[1]) {
 	case "show":
 		cfg := s.runtime.Config()
+		if s.isJSONOutput() {
+			return s.printJSON(map[string]any{
+				"apiBaseUrl":                 cfg.APIBaseURL,
+				"accessKeyMasked":            util.MaskSecret(cfg.AccessKey),
+				"language":                   cfg.NormalizedLanguage(),
+				"httpTimeoutSeconds":         cfg.HTTPTimeoutSecondsValue(),
+				"httpReadMaxRetries":         cfg.HTTPReadMaxRetriesValue(),
+				"httpReadRetryBackoffMillis": cfg.HTTPReadRetryBackoffMillisValue(),
+			})
+		}
 		s.io.Println(i18n.T("config.apiBaseUrlLabel") + ": " + cfg.APIBaseURL)
 		s.io.Println(i18n.T("config.accessKeyLabel") + ": " + util.MaskSecret(cfg.AccessKey))
 		s.io.Println(i18n.T("config.languageLabel") + ": " + cfg.NormalizedLanguage())
+		s.io.Println(i18n.T("config.httpTimeoutLabel") + ": " + strconv.Itoa(cfg.HTTPTimeoutSecondsValue()))
+		s.io.Println(i18n.T("config.httpReadMaxRetriesLabel") + ": " + strconv.Itoa(cfg.HTTPReadMaxRetriesValue()))
+		s.io.Println(i18n.T("config.httpReadRetryBackoffMillisLabel") + ": " + strconv.Itoa(cfg.HTTPReadRetryBackoffMillisValue()))
 		return nil
 	case "init":
 		updated, err := s.runtime.Reinitialize(s.io)
@@ -140,6 +165,12 @@ func (s *Shell) handleLang(tokens []string) error {
 			s.io.Println(i18n.T("lang.usage"))
 			return nil
 		}
+		if s.isJSONOutput() {
+			return s.printJSON(map[string]any{
+				"language":  s.runtime.Config().NormalizedLanguage(),
+				"supported": []string{"en", "zh"},
+			})
+		}
 		s.io.Println(i18n.T("lang.current", s.runtime.Config().NormalizedLanguage()))
 		s.io.Println(i18n.T("common.supportedLanguages"))
 		return nil
@@ -151,6 +182,12 @@ func (s *Shell) handleLang(tokens []string) error {
 		}
 		if err := s.runtime.SetLanguage(tokens[2]); err != nil {
 			return err
+		}
+		if s.isJSONOutput() {
+			return s.printJSON(map[string]any{
+				"language": s.runtime.Config().NormalizedLanguage(),
+				"message":  i18n.T("lang.updated", i18n.DisplayName(s.runtime.Config().NormalizedLanguage())),
+			})
 		}
 		s.io.Println(i18n.T("lang.updated", i18n.DisplayName(s.runtime.Config().NormalizedLanguage())))
 		return nil

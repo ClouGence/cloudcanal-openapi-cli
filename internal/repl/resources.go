@@ -79,14 +79,12 @@ func (s *Shell) handleWorkers(tokens []string) error {
 			if err := s.runtime.Workers().Start(workerID); err != nil {
 				return err
 			}
-			s.io.Println(s.actionMessage("worker.started", workerID))
-			return nil
+			return s.printActionResult("worker.started", "worker", "started", workerID)
 		}
 		if err := s.runtime.Workers().Stop(workerID); err != nil {
 			return err
 		}
-		s.io.Println(s.actionMessage("worker.stopped", workerID))
-		return nil
+		return s.printActionResult("worker.stopped", "worker", "stopped", workerID)
 	default:
 		s.io.Println(s.usageWorkers())
 		return nil
@@ -124,6 +122,9 @@ func (s *Shell) printDataSources(options datasource.ListOptions) error {
 	if err != nil {
 		return err
 	}
+	if s.isJSONOutput() {
+		return s.printJSON(sources)
+	}
 
 	headers := []string{s.label("id"), s.label("instance"), s.label("type"), s.label("host"), s.label("deploy"), s.label("lifecycleState"), s.label("description")}
 	rows := make([][]string, 0, len(sources))
@@ -149,6 +150,9 @@ func (s *Shell) printDataSource(dataSourceID int64) error {
 	if err != nil {
 		return err
 	}
+	if s.isJSONOutput() {
+		return s.printJSON(source)
+	}
 
 	s.io.Println(s.sectionTitle("datasource.details"))
 	s.io.Println(s.line(s.label("id"), strconv.FormatInt(source.ID, 10)))
@@ -170,6 +174,9 @@ func (s *Shell) printClusters(options cluster.ListOptions) error {
 	clusters, err := s.runtime.Clusters().List(options)
 	if err != nil {
 		return err
+	}
+	if s.isJSONOutput() {
+		return s.printJSON(clusters)
 	}
 
 	headers := []string{s.label("id"), s.label("name"), s.label("region"), s.label("cloud"), s.label("workers"), s.label("running"), s.label("abnormal"), s.label("owner")}
@@ -197,6 +204,9 @@ func (s *Shell) printWorkers(options worker.ListOptions) error {
 	if err != nil {
 		return err
 	}
+	if s.isJSONOutput() {
+		return s.printJSON(workers)
+	}
 
 	headers := []string{s.label("id"), s.label("name"), s.label("state"), s.label("type"), s.label("cluster"), s.label("privateIP"), s.label("health"), s.label("load")}
 	rows := make([][]string, 0, len(workers))
@@ -222,6 +232,9 @@ func (s *Shell) printConsoleJob(consoleJobID int64) error {
 	job, err := s.runtime.ConsoleJobs().Get(consoleJobID)
 	if err != nil {
 		return err
+	}
+	if s.isJSONOutput() {
+		return s.printJSON(job)
 	}
 
 	s.io.Println(s.sectionTitle("consolejob.details"))
@@ -263,6 +276,9 @@ func (s *Shell) printSpecs(options jobconfig.ListSpecsOptions) error {
 	specs, err := s.runtime.JobConfigs().ListSpecs(options)
 	if err != nil {
 		return err
+	}
+	if s.isJSONOutput() {
+		return s.printJSON(specs)
 	}
 
 	headers := []string{s.label("id"), s.label("jobType"), s.label("kind"), s.label("spec"), s.label("fullMB"), s.label("increMB"), s.label("checkMB")}

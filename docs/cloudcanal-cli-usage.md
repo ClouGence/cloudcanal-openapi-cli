@@ -15,6 +15,7 @@ cloudcanal
 ```bash
 cloudcanal jobs list
 cloudcanal datasources list --type MYSQL
+cloudcanal jobs list --type SYNC --output json
 ```
 
 如果还没有安装到系统命令，也可以直接执行本地二进制：
@@ -32,6 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 说明：
 
 - 当前一键安装会从 GitHub Releases 下载预编译二进制
+- 下载后会自动校验 release 里的 `checksums.txt`
 - 不需要本机安装 `Go`
 - 默认会把二进制安装到 `~/.local/share/cloudcanal-openapi-cli/bin/cloudcanal`
 - 之后会自动完成命令、PATH 和补全安装
@@ -57,7 +59,10 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
   "apiBaseUrl": "https://cc.example.com",
   "accessKey": "your-ak",
   "secretKey": "your-sk",
-  "language": "en"
+  "language": "en",
+  "httpTimeoutSeconds": 15,
+  "httpReadMaxRetries": 2,
+  "httpReadRetryBackoffMillis": 300
 }
 ```
 
@@ -67,6 +72,9 @@ curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main
 - `accessKey` 是访问密钥 ID
 - `secretKey` 是访问密钥 Secret，不会在 `config show` 中明文展示
 - `language` 是 CLI 文案语言，支持 `en` 和 `zh`
+- `httpTimeoutSeconds` 是单次 HTTP 请求超时秒数，默认 `10`
+- `httpReadMaxRetries` 是只读请求的最大重试次数，默认 `0`
+- `httpReadRetryBackoffMillis` 是只读请求的首次退避毫秒数，默认 `250`
 
 ## 基本命令
 
@@ -127,12 +135,14 @@ cloudcanal completion bash
 - `--desc <desc>`: 按任务描述过滤
 - `--source-id <id>`: 按源数据源 ID 过滤
 - `--target-id <id>`: 按目标数据源 ID 过滤
+- `--output <text|json>`: 输出文本表格或 JSON
 
 示例：
 
 ```bash
 cloudcanal jobs list --type SYNC --name demo
 cloudcanal jobs list --desc "nightly sync"
+cloudcanal jobs list --type SYNC --output json
 ```
 
 `jobs show <jobId>`
@@ -256,6 +266,7 @@ cloudcanal job-config specs --type SYNC --initial-sync=true
 ## 使用建议
 
 - 带空格的参数值请使用引号包裹，例如 `--desc "nightly sync"`
+- 可以在查询类命令后追加 `--output json` 获取机器可读结果
 - 交互模式下如果终端支持行编辑，可以直接使用 `TAB` 补全命令、子命令和常见参数
 - 可以先执行 `cloudcanal help` 查看帮助主题，再执行 `cloudcanal help jobs` 这类子帮助查看参数含义
 - 如果想切换中文或英文文案，可执行 `cloudcanal lang set zh` 或 `cloudcanal lang set en`

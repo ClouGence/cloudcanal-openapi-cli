@@ -33,6 +33,7 @@ COMPLETION_MARK_END="# <<< cloudcanal-openapi-cli completion <<<"
 DOWNLOAD_BASE_URL="${DOWNLOAD_BASE_URL:-}"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/${REPO_NAME}.XXXXXX")"
 ARCHIVE_PATH="$TMP_DIR/$APP_NAME.tar.gz"
+CHECKSUMS_PATH="$TMP_DIR/checksums.txt"
 EXTRACT_DIR="$TMP_DIR/extract"
 
 cleanup() {
@@ -88,6 +89,88 @@ download_url() {
   printf 'https://github.com/%s/%s/releases/download/%s/%s\n' "$REPO_OWNER" "$REPO_NAME" "$RELEASE_VERSION" "$ARCHIVE_NAME"
 }
 
+checksums_url() {
+  if [[ -n "$DOWNLOAD_BASE_URL" ]]; then
+    printf '%s/checksums.txt\n' "${DOWNLOAD_BASE_URL%/}"
+    return 0
+  fi
+
+  if [[ "$RELEASE_VERSION" == "latest" ]]; then
+    printf 'https://github.com/%s/%s/releases/latest/download/checksums.txt\n' "$REPO_OWNER" "$REPO_NAME"
+    return 0
+  fi
+
+  printf 'https://github.com/%s/%s/releases/download/%s/checksums.txt\n' "$REPO_OWNER" "$REPO_NAME" "$RELEASE_VERSION"
+}
+
+sha256_command() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf 'sha256sum\n'
+    return 0
+  fi
+  if command -v shasum >/dev/null 2>&1; then
+    printf 'shasum\n'
+    return 0
+  fi
+  if command -v openssl >/dev/null 2>&1; then
+    printf 'openssl\n'
+    return 0
+  fi
+  log_error "A SHA-256 tool is required (sha256sum, shasum, or openssl)"
+  exit 1
+}
+
+compute_sha256() {
+  local file_path="$1"
+
+  case "$(sha256_command)" in
+    sha256sum)
+      sha256sum "$file_path" | awk '{print $1}'
+      ;;
+    shasum)
+      shasum -a 256 "$file_path" | awk '{print $1}'
+      ;;
+    openssl)
+      openssl dgst -sha256 -r "$file_path" | awk '{print $1}'
+      ;;
+  esac
+}
+
+verify_archive_checksum() {
+  local url
+  url="$(checksums_url)"
+  log_info "Downloading checksum file from $url"
+  curl -fsSL "$url" -o "$CHECKSUMS_PATH"
+
+  local expected actual
+  expected="$(
+    awk -v target="$ARCHIVE_NAME" '
+      {
+        name = $2
+        sub(/^\.\//, "", name)
+        if (name == target) {
+          print $1
+          exit
+        }
+      }
+    ' "$CHECKSUMS_PATH"
+  )"
+  if [[ -z "$expected" ]]; then
+    log_error "Checksum entry not found for $ARCHIVE_NAME"
+    exit 1
+  fi
+
+  actual="$(compute_sha256 "$ARCHIVE_PATH")"
+  if [[ "$actual" != "$expected" ]]; then
+    log_error "Checksum verification failed for $ARCHIVE_NAME"
+    log_error "Expected: $expected"
+    log_error "Actual:   $actual"
+    exit 1
+  fi
+
+  log_success "Verified release checksum for $ARCHIVE_NAME"
+}
+
 install_binary() {
   mkdir -p "$INSTALL_ROOT/bin" "$EXTRACT_DIR"
 
@@ -95,6 +178,7 @@ install_binary() {
   url="$(download_url)"
   log_info "Downloading release asset from $url"
   curl -fsSL "$url" -o "$ARCHIVE_PATH"
+  verify_archive_checksum
 
   log_info "Extracting release asset"
   tar -xzf "$ARCHIVE_PATH" -C "$EXTRACT_DIR"

@@ -57,7 +57,7 @@ type queryResponse struct {
 
 func (s *Service) Get(consoleJobID int64) (Job, error) {
 	var out queryResponse
-	if err := s.client.PostJSON(queryPath, queryRequest{ConsoleJobID: consoleJobID}, &out); err != nil {
+	if err := s.client.PostJSONWithOptions(queryPath, queryRequest{ConsoleJobID: consoleJobID}, &out, openapi.RequestOptions{Retryable: true}); err != nil {
 		return Job{}, err
 	}
 	if err := openapi.EnsureSuccess(out.Response, "failed to query console job"); err != nil {

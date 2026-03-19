@@ -46,11 +46,11 @@ type listSpecsResponse struct {
 
 func (s *Service) ListSpecs(options ListSpecsOptions) ([]Spec, error) {
 	var out listSpecsResponse
-	if err := s.client.PostJSON(listSpecsPath, listSpecsRequest{
+	if err := s.client.PostJSONWithOptions(listSpecsPath, listSpecsRequest{
 		DataJobType:   options.DataJobType,
 		InitialSync:   options.InitialSync,
 		ShortTermSync: options.ShortTermSync,
-	}, &out); err != nil {
+	}, &out, openapi.RequestOptions{Retryable: true}); err != nil {
 		return nil, err
 	}
 	if err := openapi.EnsureSuccess(out.Response, "failed to list job specs"); err != nil {

@@ -13,6 +13,7 @@ import (
 	"cloudcanal-openapi-cli/internal/repl"
 	"cloudcanal-openapi-cli/internal/worker"
 	"cloudcanal-openapi-cli/test/testsupport"
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -187,6 +188,9 @@ func TestShellHandlesHappyPathCommands(t *testing.T) {
 		"apiBaseUrl: https://cc.example.com",
 		"accessKey: abcd****ijkl",
 		"language: en",
+		"httpTimeoutSeconds: 10",
+		"httpReadMaxRetries: 0",
+		"httpReadRetryBackoffMillis: 250",
 	} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("output missing %q in %q", want, out)
@@ -343,6 +347,61 @@ func TestShellSwitchesLanguageForFollowUpOutput(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Fatalf("output missing %q in %q", want, out)
 		}
+	}
+}
+
+func TestShellOutputsJSONForCommandsAndErrors(t *testing.T) {
+	dataJobs := &fakeDataJobs{
+		jobs: []datajob.Job{
+			{
+				DataJobID:     22,
+				DataJobName:   "batch-job",
+				DataJobType:   "CHECK",
+				DataTaskState: "CREATED",
+			},
+		},
+	}
+	runtime := &fakeRuntime{
+		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
+		dataJobs:    dataJobs,
+		dataSources: &fakeDataSources{},
+		clusters:    &fakeClusters{},
+		workers:     &fakeWorkers{},
+		consoleJobs: &fakeConsoleJobs{},
+		jobConfigs:  &fakeJobConfigs{},
+	}
+
+	io := testsupport.NewTestConsole()
+	shell := repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"jobs", "list", "--type", "CHECK", "--output", "json"}); err != nil {
+		t.Fatalf("ExecuteArgs(json jobs list) error = %v", err)
+	}
+
+	var jobs []map[string]any
+	if err := json.Unmarshal([]byte(io.Output()), &jobs); err != nil {
+		t.Fatalf("json.Unmarshal(jobs output) error = %v, output = %q", err, io.Output())
+	}
+	if len(jobs) != 1 || jobs[0]["dataJobName"] != "batch-job" {
+		t.Fatalf("jobs json = %#v, want batch-job", jobs)
+	}
+
+	io = testsupport.NewTestConsole()
+	shell = repl.NewShell(io, runtime)
+	err := shell.ExecuteArgs([]string{"jobs", "start", "abc", "--output", "json"})
+	if err == nil {
+		t.Fatal("ExecuteArgs(json jobs start) error = nil, want non-nil")
+	}
+	shell.PrintFatalError(err)
+
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(io.Output()), &payload); err != nil {
+		t.Fatalf("json.Unmarshal(error output) error = %v, output = %q", err, io.Output())
+	}
+	if payload["error"] != "jobId must be a positive integer" {
+		t.Fatalf("error payload = %#v, want jobId validation", payload)
+	}
+	if payload["fatal"] != true {
+		t.Fatalf("error payload = %#v, want fatal=true", payload)
 	}
 }
 

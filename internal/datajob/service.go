@@ -128,7 +128,7 @@ type queryJobSchemaResponse struct {
 
 func (s *Service) ListJobs(options ListOptions) ([]Job, error) {
 	var out listJobsResponse
-	if err := s.client.PostJSON(listPath, newListJobsRequest(options), &out); err != nil {
+	if err := s.client.PostJSONWithOptions(listPath, newListJobsRequest(options), &out, openapi.RequestOptions{Retryable: true}); err != nil {
 		return nil, err
 	}
 	if err := openapi.EnsureSuccess(out.Response, "failed to list jobs"); err != nil {
@@ -142,7 +142,7 @@ func (s *Service) ListJobs(options ListOptions) ([]Job, error) {
 
 func (s *Service) GetJob(jobID int64) (Job, error) {
 	var out queryJobResponse
-	if err := s.client.PostJSON(queryPath, jobActionRequest{JobID: jobID}, &out); err != nil {
+	if err := s.client.PostJSONWithOptions(queryPath, jobActionRequest{JobID: jobID}, &out, openapi.RequestOptions{Retryable: true}); err != nil {
 		return Job{}, err
 	}
 	if err := openapi.EnsureSuccess(out.Response, "failed to query job"); err != nil {
@@ -153,7 +153,7 @@ func (s *Service) GetJob(jobID int64) (Job, error) {
 
 func (s *Service) GetJobSchema(jobID int64) (JobSchema, error) {
 	var out queryJobSchemaResponse
-	if err := s.client.PostJSON(schemaPath, jobActionRequest{JobID: jobID}, &out); err != nil {
+	if err := s.client.PostJSONWithOptions(schemaPath, jobActionRequest{JobID: jobID}, &out, openapi.RequestOptions{Retryable: true}); err != nil {
 		return JobSchema{}, err
 	}
 	if err := openapi.EnsureSuccess(out.Response, "failed to query job schema"); err != nil {
