@@ -1,4 +1,4 @@
-package repl
+package repl_test
 
 import (
 	"cloudcanal-openapi-cli/internal/app"
@@ -9,8 +9,9 @@ import (
 	"cloudcanal-openapi-cli/internal/datajob"
 	"cloudcanal-openapi-cli/internal/datasource"
 	"cloudcanal-openapi-cli/internal/jobconfig"
-	"cloudcanal-openapi-cli/internal/testsupport"
+	"cloudcanal-openapi-cli/internal/repl"
 	"cloudcanal-openapi-cli/internal/worker"
+	"cloudcanal-openapi-cli/test/testsupport"
 	"strings"
 	"testing"
 )
@@ -124,7 +125,7 @@ func TestShellHandlesHappyPathCommands(t *testing.T) {
 		"exit",
 	)
 
-	shell := NewShell(io, runtime)
+	shell := repl.NewShell(io, runtime)
 	if err := shell.Run(); err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -208,7 +209,7 @@ func TestShellReportsInvalidCommandsWithoutExiting(t *testing.T) {
 		"exit",
 	)
 
-	shell := NewShell(io, runtime)
+	shell := repl.NewShell(io, runtime)
 	if err := shell.Run(); err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -255,7 +256,7 @@ func TestShellExecutesArgsWithoutInteractiveLoop(t *testing.T) {
 	}
 	io := testsupport.NewTestConsole()
 
-	shell := NewShell(io, runtime)
+	shell := repl.NewShell(io, runtime)
 	if err := shell.ExecuteArgs([]string{"jobs", "list", "--type", "CHECK"}); err != nil {
 		t.Fatalf("ExecuteArgs() error = %v", err)
 	}

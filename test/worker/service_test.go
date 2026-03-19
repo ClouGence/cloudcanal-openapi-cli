@@ -1,8 +1,9 @@
-package worker
+package worker_test
 
 import (
 	"cloudcanal-openapi-cli/internal/config"
 	"cloudcanal-openapi-cli/internal/openapi"
+	"cloudcanal-openapi-cli/internal/worker"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -28,8 +29,8 @@ func TestServiceListsWorkers(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
-	workers, err := service.List(ListOptions{ClusterID: 2, SourceInstanceID: 1001, TargetInstanceID: 1002})
+	service := worker.NewService(client)
+	workers, err := service.List(worker.ListOptions{ClusterID: 2, SourceInstanceID: 1001, TargetInstanceID: 1002})
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
 	}
@@ -62,7 +63,7 @@ func TestServiceStartsAndStopsWorker(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
+	service := worker.NewService(client)
 	if err := service.Start(6); err != nil {
 		t.Fatalf("Start() error = %v", err)
 	}

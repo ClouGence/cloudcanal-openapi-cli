@@ -1,7 +1,8 @@
-package consolejob
+package consolejob_test
 
 import (
 	"cloudcanal-openapi-cli/internal/config"
+	"cloudcanal-openapi-cli/internal/consolejob"
 	"cloudcanal-openapi-cli/internal/openapi"
 	"net/http"
 	"net/http/httptest"
@@ -23,7 +24,7 @@ func TestServiceGetsConsoleJob(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
+	service := consolejob.NewService(client)
 	job, err := service.Get(21)
 	if err != nil {
 		t.Fatalf("Get() error = %v", err)

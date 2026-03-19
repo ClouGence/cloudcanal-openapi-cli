@@ -1,6 +1,7 @@
-package cluster
+package cluster_test
 
 import (
+	"cloudcanal-openapi-cli/internal/cluster"
 	"cloudcanal-openapi-cli/internal/config"
 	"cloudcanal-openapi-cli/internal/openapi"
 	"encoding/json"
@@ -28,8 +29,8 @@ func TestServiceListsClusters(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
-	clusters, err := service.List(ListOptions{
+	service := cluster.NewService(client)
+	clusters, err := service.List(cluster.ListOptions{
 		ClusterName:    "prod",
 		ClusterDesc:    "main",
 		CloudOrIDCName: "ALIYUN",

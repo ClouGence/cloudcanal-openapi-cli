@@ -1,23 +1,25 @@
-package config
+package config_test
 
 import (
-	"cloudcanal-openapi-cli/internal/testsupport"
 	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"cloudcanal-openapi-cli/internal/config"
+	"cloudcanal-openapi-cli/test/testsupport"
 )
 
 func TestWizardSavesConfigAfterSuccessfulValidation(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")
-	service := NewService(path)
+	service := config.NewService(path)
 	io := testsupport.NewTestConsole("https://cc.example.com", "test-ak", "test-sk")
 
-	wizard := NewWizard(io, service, func(cfg AppConfig) error {
+	wizard := config.NewWizard(io, service, func(cfg config.AppConfig) error {
 		return nil
-	}, AppConfig{})
+	}, config.AppConfig{})
 
 	cfg, err := wizard.Run()
 	if err != nil {
@@ -34,12 +36,12 @@ func TestWizardSavesConfigAfterSuccessfulValidation(t *testing.T) {
 func TestWizardDoesNotPersistOnValidationFailureThenExit(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")
-	service := NewService(path)
+	service := config.NewService(path)
 	io := testsupport.NewTestConsole("https://cc.example.com", "test-ak", "test-sk", "exit")
 
-	wizard := NewWizard(io, service, func(cfg AppConfig) error {
+	wizard := config.NewWizard(io, service, func(cfg config.AppConfig) error {
 		return errors.New("authentication failed")
-	}, AppConfig{})
+	}, config.AppConfig{})
 
 	cfg, err := wizard.Run()
 	if err != nil {
@@ -59,12 +61,12 @@ func TestWizardDoesNotPersistOnValidationFailureThenExit(t *testing.T) {
 func TestWizardReusesCurrentValuesAndDoesNotPrintSecret(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")
-	service := NewService(path)
+	service := config.NewService(path)
 	io := testsupport.NewTestConsole("", "", "")
 
-	wizard := NewWizard(io, service, func(cfg AppConfig) error {
+	wizard := config.NewWizard(io, service, func(cfg config.AppConfig) error {
 		return nil
-	}, AppConfig{
+	}, config.AppConfig{
 		APIBaseURL: "https://cc.example.com",
 		AccessKey:  "current-ak",
 		SecretKey:  "current-sk",

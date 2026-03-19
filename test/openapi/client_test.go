@@ -1,7 +1,8 @@
-package openapi
+package openapi_test
 
 import (
 	"cloudcanal-openapi-cli/internal/config"
+	"cloudcanal-openapi-cli/internal/openapi"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -30,7 +31,7 @@ func TestClientPostsJSONWithSignedParams(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewClient(config.AppConfig{
+	client, err := openapi.NewClient(config.AppConfig{
 		APIBaseURL: server.URL,
 		AccessKey:  "test-ak",
 		SecretKey:  "test-sk",
@@ -64,7 +65,7 @@ func TestClientReturnsServerErrorForNon2xx(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewClient(config.AppConfig{
+	client, err := openapi.NewClient(config.AppConfig{
 		APIBaseURL: server.URL,
 		AccessKey:  "test-ak",
 		SecretKey:  "test-sk",
@@ -77,7 +78,7 @@ func TestClientReturnsServerErrorForNon2xx(t *testing.T) {
 	if err == nil {
 		t.Fatal("PostJSON() error = nil, want non-nil")
 	}
-	serverErr, ok := err.(*ServerError)
+	serverErr, ok := err.(*openapi.ServerError)
 	if !ok {
 		t.Fatalf("error type = %T, want *ServerError", err)
 	}
@@ -95,7 +96,7 @@ func TestClientReturnsErrorWhenConnectionFails(t *testing.T) {
 	_ = listener.Close()
 
 	httpClient := &http.Client{Timeout: 200 * time.Millisecond}
-	client, err := NewClientWithHTTP(config.AppConfig{
+	client, err := openapi.NewClientWithHTTP(config.AppConfig{
 		APIBaseURL: "http://" + addr,
 		AccessKey:  "test-ak",
 		SecretKey:  "test-sk",

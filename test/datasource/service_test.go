@@ -1,7 +1,8 @@
-package datasource
+package datasource_test
 
 import (
 	"cloudcanal-openapi-cli/internal/config"
+	"cloudcanal-openapi-cli/internal/datasource"
 	"cloudcanal-openapi-cli/internal/openapi"
 	"encoding/json"
 	"net/http"
@@ -28,8 +29,8 @@ func TestServiceListsDataSources(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
-	sources, err := service.List(ListOptions{Type: "MYSQL", DeployType: "ALIYUN", HostType: "RDS", LifeCycleState: "ACTIVE"})
+	service := datasource.NewService(client)
+	sources, err := service.List(datasource.ListOptions{Type: "MYSQL", DeployType: "ALIYUN", HostType: "RDS", LifeCycleState: "ACTIVE"})
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
 	}
@@ -56,7 +57,7 @@ func TestServiceGetsDataSourceByID(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
+	service := datasource.NewService(client)
 	source, err := service.Get(9)
 	if err != nil {
 		t.Fatalf("Get() error = %v", err)

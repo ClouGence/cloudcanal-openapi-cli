@@ -1,7 +1,8 @@
-package jobconfig
+package jobconfig_test
 
 import (
 	"cloudcanal-openapi-cli/internal/config"
+	"cloudcanal-openapi-cli/internal/jobconfig"
 	"cloudcanal-openapi-cli/internal/openapi"
 	"encoding/json"
 	"net/http"
@@ -30,8 +31,8 @@ func TestServiceListsSpecs(t *testing.T) {
 
 	initialSync := true
 	shortTermSync := false
-	service := NewService(client)
-	specs, err := service.ListSpecs(ListSpecsOptions{
+	service := jobconfig.NewService(client)
+	specs, err := service.ListSpecs(jobconfig.ListSpecsOptions{
 		DataJobType:   "SYNC",
 		InitialSync:   &initialSync,
 		ShortTermSync: &shortTermSync,

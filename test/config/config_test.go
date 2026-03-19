@@ -1,16 +1,18 @@
-package config
+package config_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"cloudcanal-openapi-cli/internal/config"
 )
 
 func TestServiceSaveAndLoad(t *testing.T) {
 	dir := t.TempDir()
-	service := NewService(filepath.Join(dir, "config.json"))
+	service := config.NewService(filepath.Join(dir, "config.json"))
 
-	cfg := AppConfig{
+	cfg := config.AppConfig{
 		APIBaseURL: "https://cc.example.com",
 		AccessKey:  "access-key",
 		SecretKey:  "secret-key",
@@ -35,7 +37,7 @@ func TestServiceRejectsInvalidJSON(t *testing.T) {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
 
-	service := NewService(path)
+	service := config.NewService(path)
 	if _, err := service.Load(); err == nil {
 		t.Fatal("Load() error = nil, want non-nil")
 	}
@@ -48,7 +50,7 @@ func TestServiceRejectsMissingField(t *testing.T) {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
 
-	service := NewService(path)
+	service := config.NewService(path)
 	if _, err := service.Load(); err == nil {
 		t.Fatal("Load() error = nil, want non-nil")
 	}

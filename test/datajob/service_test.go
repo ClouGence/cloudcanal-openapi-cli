@@ -1,7 +1,8 @@
-package datajob
+package datajob_test
 
 import (
 	"cloudcanal-openapi-cli/internal/config"
+	"cloudcanal-openapi-cli/internal/datajob"
 	"cloudcanal-openapi-cli/internal/openapi"
 	"encoding/json"
 	"net/http"
@@ -28,8 +29,8 @@ func TestServiceListsJobs(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
-	jobs, err := service.ListJobs(ListOptions{
+	service := datajob.NewService(client)
+	jobs, err := service.ListJobs(datajob.ListOptions{
 		DataJobName:      "sync",
 		DataJobType:      "SYNC",
 		Desc:             "nightly",
@@ -65,7 +66,7 @@ func TestServiceGetsJobDetails(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
+	service := datajob.NewService(client)
 	job, err := service.GetJob(11)
 	if err != nil {
 		t.Fatalf("GetJob() error = %v", err)
@@ -90,7 +91,7 @@ func TestServiceGetsJobSchema(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
+	service := datajob.NewService(client)
 	schema, err := service.GetJobSchema(11)
 	if err != nil {
 		t.Fatalf("GetJobSchema() error = %v", err)
@@ -119,8 +120,8 @@ func TestServiceReplayJobSendsFlags(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
-	if err := service.ReplayJob(12, ReplayOptions{AutoStart: true, ResetToCreated: true}); err != nil {
+	service := datajob.NewService(client)
+	if err := service.ReplayJob(12, datajob.ReplayOptions{AutoStart: true, ResetToCreated: true}); err != nil {
 		t.Fatalf("ReplayJob() error = %v", err)
 	}
 	if gotBody["jobId"] != float64(12) || gotBody["autoStart"] != true || gotBody["resetToCreated"] != true {
@@ -143,7 +144,7 @@ func TestServiceRejectsBusinessFailure(t *testing.T) {
 		t.Fatalf("NewClient() error = %v", err)
 	}
 
-	service := NewService(client)
+	service := datajob.NewService(client)
 	if err := service.StartJob(10); err == nil || err.Error() != "invalid credentials" {
 		t.Fatalf("StartJob() error = %v, want invalid credentials", err)
 	}
