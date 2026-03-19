@@ -11,15 +11,19 @@ CloudCanal OpenAPI 的命令行工具，支持：
 
 ## 快速开始
 
+1. 安装
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Arlowen/cloudcanal-openapi-cli/main/scripts/bootstrap_install.sh | bash
 ```
+
+2. 启动并完成初始化
 
 ```bash
 cloudcanal
 ```
 
-首次启动会进入初始化向导，配置完成后就可以开始用。
+首次启动会进入初始化向导。
 
 ## 常用用法
 
