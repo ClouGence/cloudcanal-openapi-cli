@@ -24,6 +24,7 @@ APP_NAME="${APP_NAME:-cloudcanal}"
 REPO_OWNER="${REPO_OWNER:-Arlowen}"
 REPO_NAME="${REPO_NAME:-cloudcanal-openapi-cli}"
 RELEASE_VERSION="${RELEASE_VERSION:-latest}"
+CLOUDCANAL_AUTO_RELOAD_SHELL="${CLOUDCANAL_AUTO_RELOAD_SHELL:-1}"
 INSTALL_ROOT="${INSTALL_ROOT:-$HOME/.cloudcanal-cli}"
 INSTALL_BIN_DIR="${INSTALL_BIN_DIR:-$INSTALL_ROOT/bin}"
 INSTALL_PATH="$INSTALL_BIN_DIR/$APP_NAME"
@@ -263,6 +264,21 @@ ensure_completion_block() {
   log_success "Updated $INSTALL_SHELL_RC"
 }
 
+reload_shell_session() {
+  if [[ "$CLOUDCANAL_AUTO_RELOAD_SHELL" != "1" ]] || [[ -n "${CI:-}" ]] || [[ ! -t 0 ]] || [[ ! -t 1 ]]; then
+    log_info "Open a new shell or source $INSTALL_SHELL_RC, then run: $APP_NAME jobs list"
+    return 0
+  fi
+
+  if [[ -z "${SHELL:-}" ]] || [[ ! -x "$SHELL" ]]; then
+    log_info "Open a new shell or source $INSTALL_SHELL_RC, then run: $APP_NAME jobs list"
+    return 0
+  fi
+
+  log_info "Launching a new login shell so $APP_NAME is available immediately"
+  exec "$SHELL" -l
+}
+
 trap cleanup EXIT
 
 log_info "CloudCanal OpenAPI CLI release install started"
@@ -274,5 +290,5 @@ ensure_completion_files
 ensure_path_block
 ensure_completion_block
 
-log_info "Open a new shell or source $INSTALL_SHELL_RC, then run: $APP_NAME jobs list"
 log_success "Release install completed"
+reload_shell_session
