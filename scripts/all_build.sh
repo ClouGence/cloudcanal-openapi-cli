@@ -53,11 +53,10 @@ else
 fi
 
 STEP_NO="2/3"
-run_step "Run tests" "test" go test ./...
+run_step "Run tests" "test" make test
 
 STEP_NO="3/3"
-mkdir -p "$BIN_DIR"
-run_step "Build CLI" "build" go build -o "$BIN_PATH" ./cmd/cloudcanal
+run_step "Build CLI" "build" make build
 
 log_success "Binary ready at $BIN_PATH"
 print_run_summary "Build completed"
