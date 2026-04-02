@@ -44,7 +44,7 @@ func (w *Wizard) Run() (*AppConfig, error) {
 	for {
 		apiBaseURL, cancelled, err := w.promptRequired("apiHost", current.APIBaseURL, validateAPIBaseURL)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if isWizardCancelled(err) {
 				return nil, nil
 			}
 			return nil, err
@@ -55,7 +55,7 @@ func (w *Wizard) Run() (*AppConfig, error) {
 
 		accessKey, cancelled, err := w.promptRequired("ak", current.AccessKey, validateAccessKey)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if isWizardCancelled(err) {
 				return nil, nil
 			}
 			return nil, err
@@ -66,7 +66,7 @@ func (w *Wizard) Run() (*AppConfig, error) {
 
 		secretKey, cancelled, err := w.promptSecret("sk", current.SecretKey)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			if isWizardCancelled(err) {
 				return nil, nil
 			}
 			return nil, err
@@ -167,4 +167,8 @@ func validateAPIBaseURL(value string) error {
 
 func validateAccessKey(value string) error {
 	return AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: value, SecretKey: "sk"}.Validate()
+}
+
+func isWizardCancelled(err error) bool {
+	return errors.Is(err, io.EOF) || console.IsPromptAborted(err)
 }

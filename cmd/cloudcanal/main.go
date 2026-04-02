@@ -13,7 +13,10 @@ import (
 	"github.com/ClouGence/cloudcanal-openapi-cli/internal/console"
 	"github.com/ClouGence/cloudcanal-openapi-cli/internal/i18n"
 	"github.com/ClouGence/cloudcanal-openapi-cli/internal/repl"
+	"github.com/ClouGence/cloudcanal-openapi-cli/internal/updatecheck"
 )
+
+var startupUpdateChecker updateNoticeChecker = updatecheck.NewChecker()
 
 func main() {
 	if handled, exitCode := handleEarlyCommands(os.Args[1:]); handled {
@@ -24,7 +27,13 @@ func main() {
 	if closer, ok := any(io).(interface{ Close() error }); ok {
 		defer func() { _ = closer.Close() }()
 	}
-	runtime := app.NewRuntime(config.NewService(""))
+	configService := config.NewService("")
+	_ = i18n.SetLanguage(configService.LoadLanguage())
+	for _, line := range startupUpdateLines(os.Args[1:], len(os.Args) == 1, startupUpdateChecker) {
+		io.Println(line)
+	}
+
+	runtime := app.NewRuntime(configService)
 	ok, err := runtime.InitializeIfNeeded(io)
 	if err != nil {
 		io.Println(i18n.T("common.fatalErrorPrefix", err.Error()))
@@ -36,6 +45,9 @@ func main() {
 
 	shell := repl.NewShell(io, runtime)
 	if len(os.Args) > 1 {
+		if line, ok := commandContextLine(os.Args[1:], runtime); ok {
+			io.Println(line)
+		}
 		if err := shell.ExecuteArgs(os.Args[1:]); err != nil {
 			shell.PrintFatalError(err)
 			os.Exit(1)
@@ -198,4 +210,80 @@ func versionFlagErrorText() string {
 		return "--version 只能单独使用，或与 --output 一起使用"
 	}
 	return "--version can only be used by itself or with --output"
+}
+
+type commandContextRuntime interface {
+	CurrentProfile() string
+	Config() config.AppConfig
+}
+
+type updateNoticeChecker interface {
+	Check(currentVersion string) (updatecheck.Notice, error)
+}
+
+func startupUpdateLines(args []string, interactive bool, checker updateNoticeChecker) []string {
+	if checker == nil || !shouldShowStartupUpdate(args, interactive) {
+		return nil
+	}
+
+	notice, err := checker.Check(buildinfo.Current().Version)
+	if err != nil || notice.LatestVersion == "" {
+		return nil
+	}
+
+	return []string{
+		i18n.T("runtime.updateAvailable", notice.LatestVersion, notice.CurrentVersion),
+		i18n.T("runtime.updateCommand", notice.UpgradeCommand),
+	}
+}
+
+func shouldShowStartupUpdate(args []string, interactive bool) bool {
+	if interactive {
+		return true
+	}
+
+	filtered, format, err := extractOutputFormat(args)
+	if err != nil || format != "text" || len(filtered) == 0 {
+		return false
+	}
+
+	switch strings.ToLower(strings.TrimSpace(filtered[0])) {
+	case "version", "completion", "__complete":
+		return false
+	default:
+		return true
+	}
+}
+
+func commandContextLine(args []string, runtime commandContextRuntime) (string, bool) {
+	filtered, format, err := extractOutputFormat(args)
+	if err != nil || format != "text" || len(filtered) == 0 {
+		return "", false
+	}
+	if !shouldShowCommandContext(filtered) {
+		return "", false
+	}
+
+	profileName := strings.TrimSpace(runtime.CurrentProfile())
+	baseURL := strings.TrimSpace(runtime.Config().APIBaseURL)
+	if profileName == "" || baseURL == "" {
+		return "", false
+	}
+	if i18n.CurrentLanguage() == i18n.Chinese {
+		return fmt.Sprintf("当前环境: %s (%s)", profileName, baseURL), true
+	}
+	return fmt.Sprintf("Current profile: %s (%s)", profileName, baseURL), true
+}
+
+func shouldShowCommandContext(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+
+	switch strings.ToLower(strings.TrimSpace(args[0])) {
+	case "config", "lang", "language", "version", "completion", "__complete", "clear", "cls":
+		return false
+	default:
+		return true
+	}
 }

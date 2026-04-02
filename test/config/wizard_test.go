@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"github.com/ClouGence/cloudcanal-openapi-cli/internal/config"
+	"github.com/ClouGence/cloudcanal-openapi-cli/internal/console"
 	"github.com/ClouGence/cloudcanal-openapi-cli/test/testsupport"
+	"github.com/peterh/liner"
 )
 
 func TestWizardReturnsConfigAfterSuccessfulValidation(t *testing.T) {
@@ -85,3 +87,45 @@ func TestWizardReusesCurrentValuesAndDoesNotPrintSecret(t *testing.T) {
 		t.Fatalf("wizard output leaked secret key: %q", out)
 	}
 }
+
+func TestWizardTreatsPromptAbortAsCancellation(t *testing.T) {
+	io := &promptAbortConsole{}
+
+	wizard := config.NewWizard(io, func(cfg config.AppConfig) error {
+		return nil
+	}, "dev", config.AppConfig{})
+
+	cfg, err := wizard.Run()
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if cfg != nil {
+		t.Fatalf("Run() config = %+v, want nil", *cfg)
+	}
+	if !strings.Contains(io.output.String(), "apiHost: ") {
+		t.Fatalf("output = %q, want apiHost prompt", io.output.String())
+	}
+}
+
+type promptAbortConsole struct {
+	output strings.Builder
+}
+
+func (p *promptAbortConsole) ReadLine(prompt string) (string, error) {
+	p.output.WriteString(prompt)
+	return "", liner.ErrPromptAborted
+}
+
+func (p *promptAbortConsole) ReadSecret(prompt string) (string, error) {
+	p.output.WriteString(prompt)
+	return "", liner.ErrPromptAborted
+}
+
+func (p *promptAbortConsole) Println(text string) {
+	p.output.WriteString(text)
+	p.output.WriteString("\n")
+}
+
+func (p *promptAbortConsole) ClearScreen() {}
+
+var _ console.IO = (*promptAbortConsole)(nil)

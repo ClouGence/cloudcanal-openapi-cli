@@ -5,8 +5,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/ClouGence/cloudcanal-openapi-cli/internal/config"
+	"github.com/ClouGence/cloudcanal-openapi-cli/internal/i18n"
+	"github.com/ClouGence/cloudcanal-openapi-cli/internal/updatecheck"
 )
 
 func TestHandleEarlyCommandsSupportsVersionWithLegacyConfig(t *testing.T) {
@@ -63,6 +68,63 @@ func TestHandleEarlyCommandsSupportsVersionFlagJSONWithInvalidConfig(t *testing.
 	}
 }
 
+func TestCommandContextLine(t *testing.T) {
+	runtime := fakeCommandContextRuntime{
+		currentProfile: "test",
+		cfg:            config.AppConfig{APIBaseURL: "https://test.example.com"},
+	}
+
+	line, ok := commandContextLine([]string{"jobs", "list"}, runtime)
+	if !ok {
+		t.Fatal("commandContextLine() ok = false, want true")
+	}
+	if line != "Current profile: test (https://test.example.com)" {
+		t.Fatalf("commandContextLine() = %q", line)
+	}
+
+	if _, ok := commandContextLine([]string{"jobs", "list", "--output", "json"}, runtime); ok {
+		t.Fatal("commandContextLine(json) ok = true, want false")
+	}
+	if _, ok := commandContextLine([]string{"config", "show"}, runtime); ok {
+		t.Fatal("commandContextLine(config show) ok = true, want false")
+	}
+}
+
+func TestStartupUpdateLines(t *testing.T) {
+	originalLanguage := i18n.CurrentLanguage()
+	t.Cleanup(func() {
+		_ = i18n.SetLanguage(originalLanguage)
+	})
+	_ = i18n.SetLanguage(i18n.English)
+
+	checker := fakeUpdateNoticeChecker{
+		notice: updatecheck.Notice{
+			CurrentVersion: "v0.1.2",
+			LatestVersion:  "v0.1.3",
+			UpgradeCommand: "curl -fsSL https://example.com/install.sh | bash",
+		},
+	}
+
+	lines := startupUpdateLines([]string{"jobs", "list"}, false, checker)
+	want := []string{
+		"New version available: v0.1.3 (current: v0.1.2)",
+		"Upgrade command: curl -fsSL https://example.com/install.sh | bash",
+	}
+	if !reflect.DeepEqual(lines, want) {
+		t.Fatalf("startupUpdateLines() = %#v, want %#v", lines, want)
+	}
+
+	if lines := startupUpdateLines([]string{"jobs", "list", "--output", "json"}, false, checker); lines != nil {
+		t.Fatalf("startupUpdateLines(json) = %#v, want nil", lines)
+	}
+	if lines := startupUpdateLines([]string{"version"}, false, checker); lines != nil {
+		t.Fatalf("startupUpdateLines(version) = %#v, want nil", lines)
+	}
+	if lines := startupUpdateLines(nil, true, checker); !reflect.DeepEqual(lines, want) {
+		t.Fatalf("startupUpdateLines(interactive) = %#v, want %#v", lines, want)
+	}
+}
+
 func captureProcessOutput(t *testing.T, fn func() (bool, int)) (string, string) {
 	t.Helper()
 
@@ -104,4 +166,26 @@ func captureProcessOutput(t *testing.T, fn func() (bool, int)) (string, string) 
 	}
 
 	return strings.TrimSpace(string(stdoutBytes)), strings.TrimSpace(string(stderrBytes))
+}
+
+type fakeCommandContextRuntime struct {
+	currentProfile string
+	cfg            config.AppConfig
+}
+
+func (f fakeCommandContextRuntime) CurrentProfile() string {
+	return f.currentProfile
+}
+
+func (f fakeCommandContextRuntime) Config() config.AppConfig {
+	return f.cfg
+}
+
+type fakeUpdateNoticeChecker struct {
+	notice updatecheck.Notice
+	err    error
+}
+
+func (f fakeUpdateNoticeChecker) Check(string) (updatecheck.Notice, error) {
+	return f.notice, f.err
 }

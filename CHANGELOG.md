@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] - 2026-04-02
+
+### Added
+
+- Added startup-time release checks that compare the local build version with the latest GitHub release and suggest a one-line `curl` upgrade command when an update is available.
+- Added a dedicated `internal/updatecheck` module with semver-aware comparison and tests for release redirect parsing.
+
+### Changed
+
+- Updated one-shot text commands to print the active profile and API endpoint before command output so users can see which environment is in use.
+- Improved interactive initialization so pressing `Ctrl+C` is treated as a clean cancellation instead of surfacing the raw `prompt aborted` error.
+
 ## [0.1.2] - 2026-04-02
 
 ### Added
