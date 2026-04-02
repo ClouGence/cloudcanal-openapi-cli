@@ -77,8 +77,8 @@ func newAlignmentRuntime() *fakeRuntime {
 			APIBaseURL: "https://cc.example.com",
 			AccessKey:  "abcdefghijkl",
 			SecretKey:  "qrstuvwxyz1234",
-			Language:   "zh",
 		},
+		language: "zh",
 		dataJobs: &fakeDataJobs{
 			jobs: []datajob.Job{
 				{

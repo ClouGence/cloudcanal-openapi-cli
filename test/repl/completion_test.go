@@ -33,11 +33,14 @@ func TestCompletionCandidatesSuggestCommandsFlagsAndValues(t *testing.T) {
 		args []string
 		want []string
 	}{
-		{name: "top level", args: []string{""}, want: []string{"help", "jobs", "config", "schemas"}},
+		{name: "top level", args: []string{""}, want: []string{"help", "jobs", "config", "schemas", "version"}},
 		{name: "top level help flag", args: []string{"--h"}, want: []string{"--help"}},
+		{name: "top level version flag", args: []string{"--v"}, want: []string{"--version"}},
 		{name: "top level global flag", args: []string{"--o"}, want: []string{"--output"}},
 		{name: "jobs help flag", args: []string{"jobs", "--h"}, want: []string{"--help"}},
 		{name: "config subcommand", args: []string{"config", "la"}, want: []string{"lang"}},
+		{name: "config profile group", args: []string{"config", "pr"}, want: []string{"profiles"}},
+		{name: "config profile subcommand", args: []string{"config", "profiles", ""}, want: []string{"add", "list", "remove", "use"}},
 		{name: "config lang value", args: []string{"config", "lang", "set", ""}, want: []string{"en", "zh"}},
 		{name: "jobs subcommand", args: []string{"jobs", "re"}, want: []string{"replay"}},
 		{name: "job-config alias path", args: []string{"jobconfig", "sp"}, want: []string{"specs"}},

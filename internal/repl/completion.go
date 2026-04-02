@@ -102,7 +102,7 @@ func completeContext(context []string, prefix string, replMode bool) []string {
 			candidates = append(candidates, visibleReplOnlyCommands...)
 		}
 		if prefix == "" || strings.HasPrefix(prefix, "--") {
-			candidates = append(candidates, "--help", "--output")
+			candidates = append(candidates, "--help", "--output", "--version")
 		}
 		return matchCandidates(candidates, prefix)
 	}

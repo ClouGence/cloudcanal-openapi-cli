@@ -1,6 +1,8 @@
 package app
 
 import (
+	"errors"
+
 	"github.com/ClouGence/cloudcanal-openapi-cli/internal/cluster"
 	"github.com/ClouGence/cloudcanal-openapi-cli/internal/config"
 	"github.com/ClouGence/cloudcanal-openapi-cli/internal/console"
@@ -16,6 +18,9 @@ import (
 
 type RuntimeContext interface {
 	Config() config.AppConfig
+	CurrentProfile() string
+	Language() string
+	ProfileSummaries() []config.ProfileSummary
 	DataJobs() datajob.Operations
 	DataSources() datasource.Operations
 	Clusters() cluster.Operations
@@ -24,19 +29,24 @@ type RuntimeContext interface {
 	JobConfigs() jobconfig.Operations
 	Schemas() ccschema.Operations
 	Reinitialize(io console.IO) (bool, error)
+	AddProfile(name string, io console.IO) (bool, error)
+	UseProfile(name string) error
+	RemoveProfile(name string) error
 	SetLanguage(language string) error
 }
 
 type Runtime struct {
-	configService *config.Service
-	config        config.AppConfig
-	dataJobs      datajob.Operations
-	dataSources   datasource.Operations
-	clusters      cluster.Operations
-	workers       worker.Operations
-	consoleJobs   consolejob.Operations
-	jobConfigs    jobconfig.Operations
-	schemas       ccschema.Operations
+	configService  *config.Service
+	state          config.State
+	currentProfile string
+	config         config.AppConfig
+	dataJobs       datajob.Operations
+	dataSources    datasource.Operations
+	clusters       cluster.Operations
+	workers        worker.Operations
+	consoleJobs    consolejob.Operations
+	jobConfigs     jobconfig.Operations
+	schemas        ccschema.Operations
 }
 
 func NewRuntime(configService *config.Service) *Runtime {
@@ -48,12 +58,16 @@ func (r *Runtime) InitializeIfNeeded(io console.IO) (bool, error) {
 		return r.Reinitialize(io)
 	}
 
-	cfg, err := r.configService.Load()
+	state, err := r.configService.Load()
 	if err != nil {
-		io.Println(i18n.T("runtime.invalidConfig", err.Error()))
+		if errors.Is(err, config.ErrLegacyFormat) {
+			io.Println(i18n.T("runtime.legacyConfig"))
+		} else {
+			io.Println(i18n.T("runtime.invalidConfig", err.Error()))
+		}
 		return r.Reinitialize(io)
 	}
-	if err := r.activate(cfg); err != nil {
+	if err := r.activateState(state); err != nil {
 		io.Println(i18n.T("runtime.invalidConfig", err.Error()))
 		return r.Reinitialize(io)
 	}
@@ -61,8 +75,23 @@ func (r *Runtime) InitializeIfNeeded(io console.IO) (bool, error) {
 }
 
 func (r *Runtime) Reinitialize(io console.IO) (bool, error) {
-	_ = i18n.SetLanguage(r.config.NormalizedLanguage())
-	wizard := config.NewWizard(io, r.configService, r.validateConfig, r.config)
+	state := r.state
+	if state.Language == "" {
+		state.Language = r.Language()
+	}
+	_ = i18n.SetLanguage(state.NormalizedLanguage())
+
+	profileName := r.currentProfile
+	if profileName == "" {
+		profileName = config.DefaultProfileName
+	}
+
+	initial := r.config
+	if existing, ok := state.Profiles[profileName]; ok {
+		initial = existing
+	}
+
+	wizard := config.NewWizard(io, r.validateConfig, profileName, initial)
 	cfg, err := wizard.Run()
 	if err != nil {
 		return false, err
@@ -71,14 +100,121 @@ func (r *Runtime) Reinitialize(io console.IO) (bool, error) {
 		io.Println(i18n.T("runtime.initCancelled"))
 		return false, nil
 	}
-	if err := r.activate(*cfg); err != nil {
+
+	state.Language = state.NormalizedLanguage()
+	if state.Profiles == nil {
+		state.Profiles = make(map[string]config.AppConfig)
+	}
+	state.CurrentProfile = profileName
+	state.Profiles[profileName] = *cfg
+	if err := r.saveAndActivate(state); err != nil {
 		return false, err
 	}
+	io.Println(i18n.T("wizard.savedTo", r.configService.Path()))
 	return true, nil
+}
+
+func (r *Runtime) AddProfile(name string, io console.IO) (bool, error) {
+	if err := config.ValidateProfileName(name); err != nil {
+		return false, err
+	}
+
+	state := r.state
+	profileName := config.NormalizeProfileName(name)
+	if state.Profiles == nil {
+		state.Profiles = make(map[string]config.AppConfig)
+	}
+	if _, exists := state.Profiles[profileName]; exists {
+		return false, errors.New(i18n.T("config.profileExists", profileName))
+	}
+
+	_ = i18n.SetLanguage(state.NormalizedLanguage())
+	wizard := config.NewWizard(io, r.validateConfig, profileName, config.AppConfig{})
+	cfg, err := wizard.Run()
+	if err != nil {
+		return false, err
+	}
+	if cfg == nil {
+		io.Println(i18n.T("runtime.initCancelled"))
+		return false, nil
+	}
+
+	state.Profiles[profileName] = *cfg
+	if state.CurrentProfile == "" {
+		state.CurrentProfile = profileName
+	}
+	if err := r.configService.Save(state); err != nil {
+		return false, err
+	}
+	if state.ActiveProfileName() == profileName {
+		if err := r.activateState(state); err != nil {
+			return false, err
+		}
+	} else {
+		r.state = state
+	}
+	io.Println(i18n.T("wizard.savedTo", r.configService.Path()))
+	return true, nil
+}
+
+func (r *Runtime) UseProfile(name string) error {
+	if err := config.ValidateProfileName(name); err != nil {
+		return err
+	}
+
+	state := r.state
+	profileName := config.NormalizeProfileName(name)
+	if _, ok := state.Profiles[profileName]; !ok {
+		return errors.New(i18n.T("config.profileNotFound", profileName))
+	}
+
+	next := state
+	next.CurrentProfile = profileName
+	if err := r.prepareState(next); err != nil {
+		return err
+	}
+	if err := r.configService.Save(next); err != nil {
+		return err
+	}
+	return r.activateState(next)
+}
+
+func (r *Runtime) RemoveProfile(name string) error {
+	if err := config.ValidateProfileName(name); err != nil {
+		return err
+	}
+
+	state := r.state
+	profileName := config.NormalizeProfileName(name)
+	if _, ok := state.Profiles[profileName]; !ok {
+		return errors.New(i18n.T("config.profileNotFound", profileName))
+	}
+	if state.ActiveProfileName() == profileName {
+		return errors.New(i18n.T("config.profileRemoveActive", profileName))
+	}
+
+	delete(state.Profiles, profileName)
+	if err := r.configService.Save(state); err != nil {
+		return err
+	}
+	r.state = state
+	return nil
 }
 
 func (r *Runtime) Config() config.AppConfig {
 	return r.config
+}
+
+func (r *Runtime) CurrentProfile() string {
+	return r.currentProfile
+}
+
+func (r *Runtime) Language() string {
+	return r.state.NormalizedLanguage()
+}
+
+func (r *Runtime) ProfileSummaries() []config.ProfileSummary {
+	return r.state.Summaries()
 }
 
 func (r *Runtime) DataJobs() datajob.Operations {
@@ -110,17 +246,25 @@ func (r *Runtime) Schemas() ccschema.Operations {
 }
 
 func (r *Runtime) SetLanguage(language string) error {
-	cfg := r.config
-	cfg.Language = language
-	cfg = cfg.WithDefaults()
-	if err := r.configService.Save(cfg); err != nil {
+	normalized := i18n.NormalizeLanguage(language)
+	if normalized == "" {
+		return errors.New(i18n.T("config.languageUnsupported"))
+	}
+
+	state := r.state
+	if state.Profiles == nil {
+		return errors.New(i18n.T("config.noProfilesConfigured"))
+	}
+	state.Language = normalized
+	if err := r.configService.Save(state); err != nil {
 		return err
 	}
-	return r.activate(cfg)
+	r.state = state
+	return i18n.SetLanguage(normalized)
 }
 
 func (r *Runtime) validateConfig(cfg config.AppConfig) error {
-	_ = i18n.SetLanguage(cfg.NormalizedLanguage())
+	_ = i18n.SetLanguage(r.Language())
 	client, err := openapi.NewClient(cfg)
 	if err != nil {
 		return err
@@ -128,13 +272,36 @@ func (r *Runtime) validateConfig(cfg config.AppConfig) error {
 	return client.ProbeAuthentication()
 }
 
-func (r *Runtime) activate(cfg config.AppConfig) error {
-	cfg = cfg.WithDefaults()
-	_ = i18n.SetLanguage(cfg.NormalizedLanguage())
+func (r *Runtime) saveAndActivate(state config.State) error {
+	if err := r.configService.Save(state); err != nil {
+		return err
+	}
+	return r.activateState(state)
+}
+
+func (r *Runtime) prepareState(state config.State) error {
+	_, cfg, err := state.ActiveProfile()
+	if err != nil {
+		return err
+	}
+	_, err = openapi.NewClient(cfg)
+	return err
+}
+
+func (r *Runtime) activateState(state config.State) error {
+	if err := r.prepareState(state); err != nil {
+		return err
+	}
+
+	profileName, cfg, _ := state.ActiveProfile()
+	_ = i18n.SetLanguage(state.NormalizedLanguage())
 	client, err := openapi.NewClient(cfg)
 	if err != nil {
 		return err
 	}
+
+	r.state = state
+	r.currentProfile = profileName
 	r.config = cfg
 	r.dataJobs = datajob.NewService(client)
 	r.dataSources = datasource.NewService(client)

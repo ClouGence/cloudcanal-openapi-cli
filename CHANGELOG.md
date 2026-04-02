@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2026-04-02
+
+### Added
+
+- Added `version` and `--version` commands with `version`, `commit`, and `buildTime` output.
+- Added profile-aware configuration management with `config profiles list|use|add|remove`.
+- Added build metadata injection and release asset packaging via a shared `make release-assets` flow.
+
+### Changed
+
+- Switched CLI configuration storage to `language + currentProfile + profiles` schema under `~/.cloudcanal-cli/config.json`.
+- Updated `config show`, REPL prompt, help text, completion, and docs to expose the active profile context.
+- Enhanced release delivery to publish installer assets and print installed build metadata after installation.
+
+### Removed
+
+- Removed support for silently reusing the legacy single-profile config format; users are now prompted to reinitialize into the profile-based schema.
+
 ## [0.1.1] - 2026-04-02
 
 ### Changed

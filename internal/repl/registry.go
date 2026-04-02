@@ -122,8 +122,16 @@ var (
 			children: []*commandSpec{
 				{name: "show", visible: true, usage: (*Shell).usageConfigShow},
 				{name: "init", visible: true, usage: (*Shell).usageConfigInit},
+				newProfilesCommand(),
 				newLanguageCommand("lang", true),
 			},
+		},
+		{
+			name:          "version",
+			visible:       true,
+			visibleInHelp: true,
+			help:          (*Shell).helpVersion,
+			usage:         (*Shell).usageVersion,
 		},
 		newLanguageCommand("lang", false, "language"),
 		{
@@ -165,6 +173,21 @@ func newLanguageCommand(name string, visible bool, aliases ...string) *commandSp
 	}
 }
 
+func newProfilesCommand() *commandSpec {
+	return &commandSpec{
+		name:    "profiles",
+		visible: true,
+		help:    (*Shell).helpProfiles,
+		usage:   (*Shell).usageConfigProfiles,
+		children: []*commandSpec{
+			{name: "list", visible: true, usage: (*Shell).usageConfigProfiles},
+			{name: "use", visible: true, usage: (*Shell).usageConfigProfiles},
+			{name: "add", visible: true, usage: (*Shell).usageConfigProfiles},
+			{name: "remove", visible: true, usage: (*Shell).usageConfigProfiles},
+		},
+	}
+}
+
 func init() {
 	mustSetCommandRun("jobs", (*Shell).handleJobs)
 	mustSetCommandRun("datasources", (*Shell).handleDataSources)
@@ -175,6 +198,7 @@ func init() {
 	mustSetCommandRun("schemas", (*Shell).handleSchemas)
 	mustSetCommandRun("config", (*Shell).handleConfig)
 	mustSetCommandRun("lang", (*Shell).handleLang)
+	mustSetCommandRun("version", (*Shell).handleVersion)
 	mustSetCommandRun("completion", (*Shell).handleCompletion)
 	mustSetCommandRun("clear", runClearScreen)
 	mustSetCommandRun("__complete", runHiddenCompletion)
@@ -214,11 +238,17 @@ func init() {
 
 	mustSetCommandRunPath([]string{"config", "show"}, (*Shell).runConfigShow)
 	mustSetCommandRunPath([]string{"config", "init"}, (*Shell).runConfigInit)
+	mustSetCommandRunPath([]string{"config", "profiles", "list"}, (*Shell).runProfilesList)
+	mustSetCommandRunPath([]string{"config", "profiles", "use"}, (*Shell).runProfilesUse)
+	mustSetCommandRunPath([]string{"config", "profiles", "add"}, (*Shell).runProfilesAdd)
+	mustSetCommandRunPath([]string{"config", "profiles", "remove"}, (*Shell).runProfilesRemove)
 	mustSetCommandRunPath([]string{"config", "lang", "show"}, (*Shell).runLanguageShow)
 	mustSetCommandRunPath([]string{"config", "lang", "set"}, (*Shell).runLanguageSet)
 
 	mustSetCommandRunPath([]string{"lang", "show"}, (*Shell).runLanguageShow)
 	mustSetCommandRunPath([]string{"lang", "set"}, (*Shell).runLanguageSet)
+
+	mustSetCommandRunPath([]string{"version"}, (*Shell).runVersion)
 
 	mustSetCommandRunPath([]string{"completion", "zsh"}, (*Shell).runCompletionZsh)
 	mustSetCommandRunPath([]string{"completion", "bash"}, (*Shell).runCompletionBash)

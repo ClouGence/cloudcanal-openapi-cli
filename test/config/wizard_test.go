@@ -2,8 +2,6 @@ package config_test
 
 import (
 	"errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,15 +9,12 @@ import (
 	"github.com/ClouGence/cloudcanal-openapi-cli/test/testsupport"
 )
 
-func TestWizardSavesConfigAfterSuccessfulValidation(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "config.json")
-	service := config.NewService(path)
-	io := testsupport.NewTestConsole("", "https://cc.example.com", "test-ak", "test-sk")
+func TestWizardReturnsConfigAfterSuccessfulValidation(t *testing.T) {
+	io := testsupport.NewTestConsole("https://cc.example.com", "test-ak", "test-sk")
 
-	wizard := config.NewWizard(io, service, func(cfg config.AppConfig) error {
+	wizard := config.NewWizard(io, func(cfg config.AppConfig) error {
 		return nil
-	}, config.AppConfig{})
+	}, "dev", config.AppConfig{})
 
 	cfg, err := wizard.Run()
 	if err != nil {
@@ -28,23 +23,17 @@ func TestWizardSavesConfigAfterSuccessfulValidation(t *testing.T) {
 	if cfg == nil {
 		t.Fatal("Run() returned nil config")
 	}
-	if cfg.Language != "en" {
-		t.Fatalf("Language = %q, want en", cfg.Language)
-	}
-	if _, err := os.Stat(path); err != nil {
-		t.Fatalf("saved config missing: %v", err)
+	if cfg.APIBaseURL != "https://cc.example.com" {
+		t.Fatalf("APIBaseURL = %q, want https://cc.example.com", cfg.APIBaseURL)
 	}
 }
 
 func TestWizardDoesNotPersistOnValidationFailureThenExit(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "config.json")
-	service := config.NewService(path)
-	io := testsupport.NewTestConsole("", "https://cc.example.com", "test-ak", "test-sk", "exit")
+	io := testsupport.NewTestConsole("https://cc.example.com", "test-ak", "test-sk", "exit")
 
-	wizard := config.NewWizard(io, service, func(cfg config.AppConfig) error {
+	wizard := config.NewWizard(io, func(cfg config.AppConfig) error {
 		return errors.New("authentication failed")
-	}, config.AppConfig{})
+	}, "prod", config.AppConfig{})
 
 	cfg, err := wizard.Run()
 	if err != nil {
@@ -53,23 +42,17 @@ func TestWizardDoesNotPersistOnValidationFailureThenExit(t *testing.T) {
 	if cfg != nil {
 		t.Fatalf("Run() config = %+v, want nil", *cfg)
 	}
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		t.Fatalf("config file exists unexpectedly, err = %v", err)
-	}
-	if out := io.Output(); out == "" || !strings.Contains(out, "Configuration validation failed") || !strings.Contains(out, "language [en]: ") {
-		t.Fatalf("wizard output missing validation failure: %q", out)
+	if out := io.Output(); out == "" || !strings.Contains(out, "Configuration validation failed") || !strings.Contains(out, "apiHost [https://cc.example.com]: ") {
+		t.Fatalf("wizard output missing validation failure reuse prompts: %q", out)
 	}
 }
 
 func TestWizardReusesCurrentValuesAndDoesNotPrintSecret(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "config.json")
-	service := config.NewService(path)
-	io := testsupport.NewTestConsole("", "", "", "")
+	io := testsupport.NewTestConsole("", "", "")
 
-	wizard := config.NewWizard(io, service, func(cfg config.AppConfig) error {
+	wizard := config.NewWizard(io, func(cfg config.AppConfig) error {
 		return nil
-	}, config.AppConfig{
+	}, "prod", config.AppConfig{
 		APIBaseURL: "https://cc.example.com",
 		AccessKey:  "current-ak",
 		SecretKey:  "current-sk",
@@ -88,8 +71,8 @@ func TestWizardReusesCurrentValuesAndDoesNotPrintSecret(t *testing.T) {
 
 	out := io.Output()
 	for _, want := range []string{
+		"CloudCanal CLI profile initialization (prod)",
 		"Press Enter to keep the current value.",
-		"language [en]: ",
 		"apiHost [https://cc.example.com]: ",
 		"ak [current-ak]: ",
 		"sk [hidden]: ",

@@ -25,41 +25,10 @@ jobs:
 
       - name: Build release assets
         run: |
-          set -euo pipefail
-          mkdir -p dist
-          VERSION="${GITHUB_REF_NAME:-dev}"
-          for target in \
-            "darwin amd64" \
-            "darwin arm64" \
-            "linux amd64" \
-            "linux arm64"
-          do
-            read -r goos goarch <<<"$target"
-            workdir="$(mktemp -d)"
-            asset_name="cloudcanal_${goos}_${goarch}.tar.gz"
-            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$workdir/cloudcanal" ./cmd/cloudcanal
-            tar -C "$workdir" -czf "dist/$asset_name" cloudcanal
-            rm -rf "$workdir"
-          done
-          (
-            cd dist
-            sha256sum cloudcanal_*.tar.gz > checksums.txt
-          )
-
-      - name: Generate release notes from CHANGELOG
-        run: |
-          set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
-          output="dist/release-notes.md"
-          awk -v version="$version" '
-            $0 ~ "^## \\[" version "\\]" { in_section = 1 }
-            /^## \[/ && in_section && $0 !~ "^## \\[" version "\\]" { exit }
-            in_section { print }
-          ' CHANGELOG.md > "$output"
-
-          if [[ ! -s "$output" ]]; then
-            echo "Release notes for version ${version} not found in CHANGELOG.md" >&2
-            exit 1
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}" make release-assets
+          else
+            make release-assets
           fi
 
       - name: Publish GitHub Release
@@ -68,4 +37,7 @@ jobs:
           files: |
             dist/cloudcanal_*.tar.gz
             dist/checksums.txt
+            dist/install.sh
+            dist/uninstall.sh
+            dist/release-notes.md
           body_path: dist/release-notes.md

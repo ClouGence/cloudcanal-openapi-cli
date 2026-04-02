@@ -34,8 +34,13 @@ cloudcanal
 单次命令：
 
 ```bash
+cloudcanal version
+cloudcanal --version
 cloudcanal --help
 cloudcanal jobs --help
+cloudcanal config profiles list
+cloudcanal config profiles use dev
+cloudcanal config profiles add test
 cloudcanal config lang set zh
 cloudcanal jobs list
 cloudcanal jobs show 123
@@ -64,20 +69,29 @@ cloudcanal jobs list --type SYNC --output json
 
 ```json
 {
-  "apiBaseUrl": "https://cc.example.com",
-  "accessKey": "your-ak",
-  "secretKey": "your-sk",
-  "language": "en"
+  "language": "en",
+  "currentProfile": "dev",
+  "profiles": {
+    "dev": {
+      "apiBaseUrl": "https://cc.example.com",
+      "accessKey": "your-ak",
+      "secretKey": "your-sk"
+    }
+  }
 }
 ```
 
-如果你需要调整网络行为，也可以追加这些可选项：
+如果你需要调整网络行为，也可以在具体 profile 下追加这些可选项：
 
 ```json
 {
-  "httpTimeoutSeconds": 15,
-  "httpReadMaxRetries": 2,
-  "httpReadRetryBackoffMillis": 300
+  "profiles": {
+    "dev": {
+      "httpTimeoutSeconds": 15,
+      "httpReadMaxRetries": 2,
+      "httpReadRetryBackoffMillis": 300
+    }
+  }
 }
 ```
 
