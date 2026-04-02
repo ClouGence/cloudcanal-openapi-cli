@@ -47,6 +47,7 @@ CloudCanal CLI 帮助
   help job-config   查看数据任务规格命令说明
   help schemas      查看 Schema 查询命令说明
   help config       查看配置命令说明
+  help version      查看版本命令说明
 
 常用命令：
   jobs list         列出数据任务
@@ -58,8 +59,11 @@ CloudCanal CLI 帮助
   consolejobs show  查看 ConsoleJob 详情
   job-config specs  查看任务规格
   schemas list-trans-objs-by-meta 查看映射对象
+  version           查看当前版本信息
   config show       查看当前配置
   config init       重新执行初始化向导
+  config profiles list 查看所有 profile
+  config profiles use dev 切换当前 profile
   config lang show  查看当前语言
   config lang set zh 切换为中文日志
   config lang set en 切换为英文日志
@@ -86,6 +90,7 @@ Help topics:
   help job-config   Show data job spec commands
   help schemas      Show schema lookup commands
   help config       Show configuration commands
+  help version      Show version command details
 
 Common commands:
   jobs list         List data jobs
@@ -97,8 +102,11 @@ Common commands:
   consolejobs show  Show console job details
   job-config specs  List data job specs
   schemas list-trans-objs-by-meta List transfer objects by metadata
+  version           Show build version information
   config show       Show current config
   config init       Re-run the initialization wizard
+  config profiles list List configured profiles
+  config profiles use dev Switch the active profile
   config lang show  Show current language
   config lang set zh Switch CLI messages to Chinese
   config lang set en Switch CLI messages to English
@@ -434,10 +442,22 @@ func (s *Shell) helpConfig() string {
 config 命令
 
 config show
-  查看当前配置，包括 apiBaseUrl、accessKey 掩码和当前 language。
+  查看当前配置，包括 currentProfile、apiBaseUrl、accessKey 掩码和当前 language。
 
 config init
-  重新进入初始化向导，更新 API 地址、密钥和 language。
+  重新进入当前 profile 的初始化向导，更新 API 地址和密钥。
+
+config profiles list
+  查看所有 profile，并标记当前正在使用的环境。
+
+config profiles use <name>
+  切换当前 profile。
+
+config profiles add <name>
+  新增 profile，并立即进入初始化向导。
+
+config profiles remove <name>
+  删除非当前 profile。
 
 config lang show
   查看当前 CLI 文案语言。
@@ -451,16 +471,90 @@ config lang set <en|zh>
 config commands
 
 config show
-  Show current config, including apiBaseUrl, masked accessKey, and current language.
+  Show current config, including currentProfile, apiBaseUrl, masked accessKey, and current language.
 
 config init
-  Re-run the initialization wizard to update API URL, credentials, and language.
+  Re-run the initialization wizard for the active profile to update API URL and credentials.
+
+config profiles list
+  List all profiles and mark the active one.
+
+config profiles use <name>
+  Switch the active profile.
+
+config profiles add <name>
+  Add a profile and open the initialization wizard immediately.
+
+config profiles remove <name>
+  Remove a non-active profile.
 
 config lang show
   Show the current CLI message language.
 
 config lang set <en|zh>
   Switch the CLI message language immediately and persist it to config.
+`)
+}
+
+func (s *Shell) helpProfiles() string {
+	if s.isChinese() {
+		return strings.TrimSpace(`
+config profiles 命令
+
+config profiles list
+  查看所有 profile，并标记当前正在使用的环境。
+
+config profiles use <name>
+  切换当前 profile。
+
+config profiles add <name>
+  新增 profile，并立即进入初始化向导。
+
+config profiles remove <name>
+  删除非当前 profile。
+`)
+	}
+
+	return strings.TrimSpace(`
+config profiles commands
+
+config profiles list
+  List all profiles and mark the active one.
+
+config profiles use <name>
+  Switch the active profile.
+
+config profiles add <name>
+  Add a profile and open the initialization wizard immediately.
+
+config profiles remove <name>
+  Remove a non-active profile.
+`)
+}
+
+func (s *Shell) helpVersion() string {
+	if s.isChinese() {
+		return strings.TrimSpace(`
+version 命令
+
+version
+  显示当前 CLI 的 version、commit 和 buildTime。
+
+说明：
+  也支持 cloudcanal --version。
+  两种方式都支持追加 --output json。
+`)
+	}
+
+	return strings.TrimSpace(`
+version command
+
+version
+  Show the current CLI version, commit, and buildTime.
+
+Notes:
+  cloudcanal --version is also supported.
+  Both forms support --output json.
 `)
 }
 

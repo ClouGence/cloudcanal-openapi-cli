@@ -287,6 +287,11 @@ ensure_completion_block() {
   log_success "Updated $INSTALL_SHELL_RC"
 }
 
+show_installed_version() {
+  log_info "Installed build metadata:"
+  "$INSTALL_BIN_PATH" version | sed 's/^/  /'
+}
+
 trap cleanup EXIT
 
 log_info "CloudCanal OpenAPI CLI release install started"
@@ -297,6 +302,7 @@ install_binary
 ensure_completion_files
 ensure_path_block
 ensure_completion_block
+show_installed_version
 
 log_info "Open a new shell or source $INSTALL_SHELL_RC, then run: $APP_NAME jobs list"
 log_success "Release install completed"

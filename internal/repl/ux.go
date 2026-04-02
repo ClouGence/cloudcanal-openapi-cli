@@ -126,20 +126,15 @@ func RenderCommandHelp(tokens []string) (string, bool) {
 		return shell.renderHelp(nil), true
 	}
 
-	if len(tokens) >= 2 && isHelpToken(tokens[1]) {
-		if spec := findRootCommand(tokens[0]); canRenderHelp(spec) {
-			return commandHelpText(shell, spec), true
-		}
+	if !isHelpToken(tokens[len(tokens)-1]) {
 		return "", false
 	}
 
-	if len(tokens) < 3 || !isHelpToken(tokens[2]) {
+	path := tokens[:len(tokens)-1]
+	spec, consumed := findCommandPath(path)
+	if spec == nil || consumed != len(path) {
 		return "", false
 	}
-
-	parent := findRootCommand(tokens[0])
-	if parent == nil {
-		return "", false
-	}
-	return commandUsageOrHelpText(shell, findChildCommand(parent, tokens[1]), parent), true
+	parent := findCommandParent(path, consumed)
+	return commandUsageOrHelpText(shell, spec, parent), true
 }

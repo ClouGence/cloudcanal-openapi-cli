@@ -13,8 +13,12 @@ cloudcanal
 单次命令模式：
 
 ```bash
+cloudcanal version
+cloudcanal --version
 cloudcanal --help
 cloudcanal jobs --help
+cloudcanal config profiles list
+cloudcanal config profiles use dev
 cloudcanal jobs list
 cloudcanal jobs create --body-file create-job.json
 cloudcanal datasources list --type MYSQL
@@ -63,22 +67,29 @@ curl -fsSL https://raw.githubusercontent.com/ClouGence/cloudcanal-openapi-cli/ma
 
 ```json
 {
-  "apiBaseUrl": "https://cc.example.com",
-  "accessKey": "your-ak",
-  "secretKey": "your-sk",
   "language": "en",
-  "httpTimeoutSeconds": 15,
-  "httpReadMaxRetries": 2,
-  "httpReadRetryBackoffMillis": 300
+  "currentProfile": "dev",
+  "profiles": {
+    "dev": {
+      "apiBaseUrl": "https://cc.example.com",
+      "accessKey": "your-ak",
+      "secretKey": "your-sk",
+      "httpTimeoutSeconds": 15,
+      "httpReadMaxRetries": 2,
+      "httpReadRetryBackoffMillis": 300
+    }
+  }
 }
 ```
 
 说明：
 
+- `language` 是全局 CLI 文案语言，支持 `en` 和 `zh`
+- `currentProfile` 是当前激活的环境
+- `profiles` 下保存每套环境的连接信息和网络参数
 - `apiBaseUrl` 必须包含 `http://` 或 `https://`
 - `accessKey` 是访问密钥 ID
 - `secretKey` 是访问密钥 Secret，不会在 `config show` 中明文展示
-- `language` 是 CLI 文案语言，支持 `en` 和 `zh`
 - `httpTimeoutSeconds` 是单次 HTTP 请求超时秒数，默认 `10`
 - `httpReadMaxRetries` 是只读请求的最大重试次数，默认 `0`
 - `httpReadRetryBackoffMillis` 是只读请求的首次退避毫秒数，默认 `250`
@@ -97,6 +108,7 @@ curl -fsSL https://raw.githubusercontent.com/ClouGence/cloudcanal-openapi-cli/ma
 - `help job-config`
 - `help schemas`
 - `help config`
+- `help version`
 
 绝大多数命令组也支持 `--help`，例如：
 
@@ -105,6 +117,16 @@ cloudcanal jobs --help
 cloudcanal jobs list --help
 cloudcanal config --help
 ```
+
+`version` / `--version`
+
+显示当前 CLI 的：
+
+- `version`
+- `commit`
+- `buildTime`
+
+也支持 `--output json`。
 
 ## 复杂请求体
 
@@ -123,11 +145,27 @@ cloudcanal config --help
 
 `config show`
 
-显示当前配置，`accessKey` 会做掩码处理，同时会显示当前 `language`。
+显示当前配置，`accessKey` 会做掩码处理，同时会显示当前 `currentProfile` 和全局 `language`。
 
 `config init`
 
-重新执行初始化向导，更新配置。
+重新执行当前 profile 的初始化向导，更新配置。
+
+`config profiles list`
+
+显示所有 profile，并标记当前正在使用的环境。
+
+`config profiles use <name>`
+
+切换当前 profile。
+
+`config profiles add <name>`
+
+新增 profile，并立即进入初始化向导。
+
+`config profiles remove <name>`
+
+删除非当前 profile。
 
 `config lang show`
 

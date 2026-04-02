@@ -25,9 +25,16 @@ func usageBlock(title string, commands ...string) string {
 
 func (s *Shell) usageConfig() string {
 	if s.isChinese() {
-		return usageBlock("用法：", "config show", "config init", "config lang show", "config lang set <en|zh>")
+		return usageBlock("用法：", "config show", "config init", "config profiles list", "config profiles use <name>", "config profiles add <name>", "config profiles remove <name>", "config lang show", "config lang set <en|zh>")
 	}
-	return usageBlock("Usage:", "config show", "config init", "config lang show", "config lang set <en|zh>")
+	return usageBlock("Usage:", "config show", "config init", "config profiles list", "config profiles use <name>", "config profiles add <name>", "config profiles remove <name>", "config lang show", "config lang set <en|zh>")
+}
+
+func (s *Shell) usageVersion() string {
+	if s.isChinese() {
+		return "用法：version"
+	}
+	return "Usage: version"
 }
 
 func (s *Shell) usageJobsGroup() string {
@@ -281,11 +288,46 @@ func (s *Shell) usageConfigLang() string {
 	return usageBlock("Usage:", "config lang show", "config lang set <en|zh>")
 }
 
+func (s *Shell) usageConfigProfiles() string {
+	if s.isChinese() {
+		return usageBlock("用法：", "config profiles list", "config profiles use <name>", "config profiles add <name>", "config profiles remove <name>")
+	}
+	return usageBlock("Usage:", "config profiles list", "config profiles use <name>", "config profiles add <name>", "config profiles remove <name>")
+}
+
 func (s *Shell) usageCompletion() string {
 	if s.isChinese() {
 		return "用法：completion <zsh|bash> [commandName]"
 	}
 	return "Usage: completion <zsh|bash> [commandName]"
+}
+
+func (s *Shell) profileListHeaders() []string {
+	if s.isChinese() {
+		return []string{"当前", "profile", "apiBaseUrl"}
+	}
+	return []string{"CURRENT", "PROFILE", "API BASE URL"}
+}
+
+func (s *Shell) profileUsedMessage(name string) string {
+	if s.isChinese() {
+		return fmt.Sprintf("当前 profile 已切换为 %s。", name)
+	}
+	return fmt.Sprintf("Current profile switched to %s.", name)
+}
+
+func (s *Shell) profileAddedMessage(name string) string {
+	if s.isChinese() {
+		return fmt.Sprintf("Profile %s 已添加。", name)
+	}
+	return fmt.Sprintf("Profile %s added.", name)
+}
+
+func (s *Shell) profileRemovedMessage(name string) string {
+	if s.isChinese() {
+		return fmt.Sprintf("Profile %s 已移除。", name)
+	}
+	return fmt.Sprintf("Profile %s removed.", name)
 }
 
 func (s *Shell) actionMessage(kind string, id int64) string {

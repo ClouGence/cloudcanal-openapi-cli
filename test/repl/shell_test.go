@@ -246,6 +246,7 @@ func TestShellHandlesHappyPathCommands(t *testing.T) {
 		"Current language: en",
 		"语言已切换为 中文。",
 		"Language switched to English.",
+		"currentProfile: dev",
 		"apiBaseUrl: https://cc.example.com",
 		"accessKey: abcd****ijkl",
 		"language: en",
@@ -468,7 +469,7 @@ func TestShellIgnoresPromptAbortInInteractiveMode(t *testing.T) {
 	if strings.Contains(out, "prompt aborted") || strings.Contains(out, "Fatal error") {
 		t.Fatalf("output should not contain prompt abort error in %q", out)
 	}
-	if got := strings.Count(out, "cloudcanal> "); got != 1 {
+	if got := strings.Count(out, "cloudcanal[dev]> "); got != 1 {
 		t.Fatalf("prompt count = %d, want 1 in %q", got, out)
 	}
 }
@@ -495,7 +496,9 @@ func TestShellHelpOverviewHidesInternalCommands(t *testing.T) {
 		"jobs list",
 		"datasources list",
 		"config init",
+		"config profiles list",
 		"config lang show",
+		"version           Show build version information",
 		"TAB               Complete commands and options",
 		"Ctrl+C            Exit interactive mode",
 		"exit              Leave interactive mode",
@@ -564,6 +567,15 @@ func TestShellSupportsHelpFlags(t *testing.T) {
 	if !strings.Contains(io.Output(), "config lang commands") {
 		t.Fatalf("output missing config lang help in %q", io.Output())
 	}
+
+	io = testsupport.NewTestConsole()
+	shell = repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"config", "profiles", "--help"}); err != nil {
+		t.Fatalf("ExecuteArgs(config profiles --help) error = %v", err)
+	}
+	if !strings.Contains(io.Output(), "config profiles commands") {
+		t.Fatalf("output missing config profiles help in %q", io.Output())
+	}
 }
 
 func TestShellSuggestsClosestCommands(t *testing.T) {
@@ -624,7 +636,8 @@ func TestShellSupportsAliasDispatch(t *testing.T) {
 	jobConfigs := &fakeJobConfigs{}
 	schemas := &fakeSchemas{}
 	runtime := &fakeRuntime{
-		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234", Language: "en"},
+		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
+		language:    "en",
 		dataJobs:    &fakeDataJobs{},
 		dataSources: &fakeDataSources{},
 		clusters:    &fakeClusters{},
@@ -653,8 +666,8 @@ func TestShellSupportsAliasDispatch(t *testing.T) {
 	if err := shell.ExecuteArgs([]string{"language", "set", "zh"}); err != nil {
 		t.Fatalf("ExecuteArgs(language set zh) error = %v", err)
 	}
-	if runtime.cfg.Language != "zh" {
-		t.Fatalf("language alias did not update runtime language: %q", runtime.cfg.Language)
+	if runtime.language != "zh" {
+		t.Fatalf("language alias did not update runtime language: %q", runtime.language)
 	}
 }
 
@@ -742,8 +755,107 @@ func TestShellOutputsJSONForCommandsAndErrors(t *testing.T) {
 	}
 }
 
+func TestShellSupportsVersionCommand(t *testing.T) {
+	runtime := &fakeRuntime{
+		cfg:         config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
+		dataJobs:    &fakeDataJobs{},
+		dataSources: &fakeDataSources{},
+		clusters:    &fakeClusters{},
+		workers:     &fakeWorkers{},
+		consoleJobs: &fakeConsoleJobs{},
+		jobConfigs:  &fakeJobConfigs{},
+	}
+
+	io := testsupport.NewTestConsole()
+	shell := repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"version"}); err != nil {
+		t.Fatalf("ExecuteArgs(version) error = %v", err)
+	}
+	for _, want := range []string{"version: ", "commit: ", "buildTime: "} {
+		if !strings.Contains(io.Output(), want) {
+			t.Fatalf("version output missing %q in %q", want, io.Output())
+		}
+	}
+
+	io = testsupport.NewTestConsole()
+	shell = repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"version", "--output", "json"}); err != nil {
+		t.Fatalf("ExecuteArgs(version --output json) error = %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(io.Output()), &payload); err != nil {
+		t.Fatalf("json.Unmarshal(version output) error = %v, output = %q", err, io.Output())
+	}
+	for _, key := range []string{"version", "commit", "buildTime"} {
+		if _, ok := payload[key]; !ok {
+			t.Fatalf("version payload missing %q: %#v", key, payload)
+		}
+	}
+}
+
+func TestShellSupportsProfileCommands(t *testing.T) {
+	runtime := &fakeRuntime{
+		cfg:            config.AppConfig{APIBaseURL: "https://cc.example.com", AccessKey: "abcdefghijkl", SecretKey: "qrstuvwxyz1234"},
+		currentProfile: "dev",
+		profileSummaries: []config.ProfileSummary{
+			{Name: "dev", APIBaseURL: "https://dev.example.com", Current: true},
+			{Name: "test", APIBaseURL: "https://test.example.com", Current: false},
+		},
+		dataJobs:    &fakeDataJobs{},
+		dataSources: &fakeDataSources{},
+		clusters:    &fakeClusters{},
+		workers:     &fakeWorkers{},
+		consoleJobs: &fakeConsoleJobs{},
+		jobConfigs:  &fakeJobConfigs{},
+	}
+
+	io := testsupport.NewTestConsole()
+	shell := repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"config", "profiles", "list"}); err != nil {
+		t.Fatalf("ExecuteArgs(config profiles list) error = %v", err)
+	}
+	for _, want := range []string{"CURRENT", "PROFILE", "dev", "test"} {
+		if !strings.Contains(io.Output(), want) {
+			t.Fatalf("profile list output missing %q in %q", want, io.Output())
+		}
+	}
+
+	io = testsupport.NewTestConsole()
+	shell = repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"config", "profiles", "use", "test"}); err != nil {
+		t.Fatalf("ExecuteArgs(config profiles use test) error = %v", err)
+	}
+	if runtime.currentProfile != "test" {
+		t.Fatalf("currentProfile = %q, want test", runtime.currentProfile)
+	}
+	if !strings.Contains(io.Output(), "Current profile switched to test.") {
+		t.Fatalf("use output = %q, want switch message", io.Output())
+	}
+
+	io = testsupport.NewTestConsole()
+	shell = repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"config", "profiles", "add", "prod"}); err != nil {
+		t.Fatalf("ExecuteArgs(config profiles add prod) error = %v", err)
+	}
+	if !strings.Contains(io.Output(), "Profile prod added.") {
+		t.Fatalf("add output = %q, want added message", io.Output())
+	}
+
+	io = testsupport.NewTestConsole()
+	shell = repl.NewShell(io, runtime)
+	if err := shell.ExecuteArgs([]string{"config", "profiles", "remove", "prod"}); err != nil {
+		t.Fatalf("ExecuteArgs(config profiles remove prod) error = %v", err)
+	}
+	if !strings.Contains(io.Output(), "Profile prod removed.") {
+		t.Fatalf("remove output = %q, want removed message", io.Output())
+	}
+}
+
 type fakeRuntime struct {
 	cfg               config.AppConfig
+	language          string
+	currentProfile    string
+	profileSummaries  []config.ProfileSummary
 	dataJobs          datajob.Operations
 	dataSources       datasource.Operations
 	clusters          cluster.Operations
@@ -791,6 +903,31 @@ func (f *fakeRuntime) Config() config.AppConfig {
 	return f.cfg
 }
 
+func (f *fakeRuntime) CurrentProfile() string {
+	if f.currentProfile != "" {
+		return f.currentProfile
+	}
+	return config.DefaultProfileName
+}
+
+func (f *fakeRuntime) Language() string {
+	if f.language != "" {
+		return f.language
+	}
+	return i18n.DefaultLanguage()
+}
+
+func (f *fakeRuntime) ProfileSummaries() []config.ProfileSummary {
+	if len(f.profileSummaries) > 0 {
+		return f.profileSummaries
+	}
+	return []config.ProfileSummary{{
+		Name:       f.CurrentProfile(),
+		APIBaseURL: f.cfg.APIBaseURL,
+		Current:    true,
+	}}
+}
+
 func (f *fakeRuntime) DataJobs() datajob.Operations {
 	return f.dataJobs
 }
@@ -824,8 +961,36 @@ func (f *fakeRuntime) Reinitialize(io console.IO) (bool, error) {
 	return f.reinitializeValue, nil
 }
 
+func (f *fakeRuntime) AddProfile(name string, io console.IO) (bool, error) {
+	f.profileSummaries = append(f.profileSummaries, config.ProfileSummary{Name: name, Current: false})
+	return true, nil
+}
+
+func (f *fakeRuntime) UseProfile(name string) error {
+	f.currentProfile = name
+	if len(f.profileSummaries) == 0 {
+		f.profileSummaries = []config.ProfileSummary{{Name: name, APIBaseURL: f.cfg.APIBaseURL, Current: true}}
+		return nil
+	}
+	for i := range f.profileSummaries {
+		f.profileSummaries[i].Current = f.profileSummaries[i].Name == name
+	}
+	return nil
+}
+
+func (f *fakeRuntime) RemoveProfile(name string) error {
+	filtered := make([]config.ProfileSummary, 0, len(f.profileSummaries))
+	for _, summary := range f.profileSummaries {
+		if summary.Name != name {
+			filtered = append(filtered, summary)
+		}
+	}
+	f.profileSummaries = filtered
+	return nil
+}
+
 func (f *fakeRuntime) SetLanguage(language string) error {
-	f.cfg.Language = language
+	f.language = language
 	_ = i18n.SetLanguage(language)
 	return nil
 }

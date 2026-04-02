@@ -2,55 +2,46 @@ package config
 
 import (
 	"errors"
-	"github.com/ClouGence/cloudcanal-openapi-cli/internal/console"
-	"github.com/ClouGence/cloudcanal-openapi-cli/internal/i18n"
 	"io"
 	"strings"
+
+	"github.com/ClouGence/cloudcanal-openapi-cli/internal/console"
+	"github.com/ClouGence/cloudcanal-openapi-cli/internal/i18n"
 )
 
 type Validator func(AppConfig) error
 
 type Wizard struct {
-	io        console.IO
-	service   *Service
-	validator Validator
-	initial   AppConfig
+	io          console.IO
+	validator   Validator
+	initial     AppConfig
+	profileName string
 }
 
-func NewWizard(io console.IO, service *Service, validator Validator, initial AppConfig) *Wizard {
+func NewWizard(io console.IO, validator Validator, profileName string, initial AppConfig) *Wizard {
 	return &Wizard{
-		io:        io,
-		service:   service,
-		validator: validator,
-		initial:   initial,
+		io:          io,
+		validator:   validator,
+		initial:     initial,
+		profileName: NormalizeProfileName(profileName),
 	}
 }
 
 func (w *Wizard) Run() (*AppConfig, error) {
 	current := w.initial.WithDefaults()
-	_ = i18n.SetLanguage(current.Language)
-	w.io.Println(i18n.T("wizard.title"))
+	profileName := w.profileName
+	if profileName == "" {
+		profileName = DefaultProfileName
+	}
+
+	w.io.Println(i18n.T("wizard.title", profileName))
 	w.io.Println(i18n.T("wizard.cancelHint"))
-	w.io.Println(i18n.T("wizard.languageHint"))
 	w.io.Println(i18n.T("wizard.apiHostHint"))
 	if w.hasInitialValue(w.initial) {
 		w.io.Println(i18n.T("wizard.keepCurrent"))
 	}
 
 	for {
-		language, cancelled, err := w.promptLanguage(current.Language)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return nil, nil
-			}
-			return nil, err
-		}
-		if cancelled {
-			return nil, nil
-		}
-		current.Language = language
-		_ = i18n.SetLanguage(language)
-
 		apiBaseURL, cancelled, err := w.promptRequired("apiHost", current.APIBaseURL, validateAPIBaseURL)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
@@ -88,7 +79,6 @@ func (w *Wizard) Run() (*AppConfig, error) {
 			APIBaseURL: apiBaseURL,
 			AccessKey:  accessKey,
 			SecretKey:  secretKey,
-			Language:   language,
 		}
 
 		if err := current.Validate(); err != nil {
@@ -101,10 +91,6 @@ func (w *Wizard) Run() (*AppConfig, error) {
 			w.io.Println(i18n.T("wizard.reuseValues"))
 			continue
 		}
-		if err := w.service.Save(current); err != nil {
-			return nil, err
-		}
-		w.io.Println(i18n.T("wizard.savedTo", w.service.Path()))
 		return &current, nil
 	}
 }
@@ -169,26 +155,10 @@ func (w *Wizard) promptWithDefault(label, current string) (string, bool, error) 
 	return trimmed, false, nil
 }
 
-func (w *Wizard) promptLanguage(current string) (string, bool, error) {
-	for {
-		value, cancelled, err := w.promptWithDefault("language", current)
-		if err != nil || cancelled {
-			return "", cancelled, err
-		}
-		normalized := i18n.NormalizeLanguage(value)
-		if normalized == "" {
-			w.io.Println(i18n.T("wizard.invalidField", "language", i18n.T("config.languageUnsupported")))
-			continue
-		}
-		return normalized, false, nil
-	}
-}
-
 func (w *Wizard) hasInitialValue(cfg AppConfig) bool {
 	return strings.TrimSpace(cfg.APIBaseURL) != "" ||
 		strings.TrimSpace(cfg.AccessKey) != "" ||
-		strings.TrimSpace(cfg.SecretKey) != "" ||
-		strings.TrimSpace(cfg.Language) != ""
+		strings.TrimSpace(cfg.SecretKey) != ""
 }
 
 func validateAPIBaseURL(value string) error {
