@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-04-02
+
+### Changed
+
+- Migrated the canonical GitHub repository owner to `ClouGence`.
+- Updated the Go module path and internal imports to `github.com/ClouGence/cloudcanal-openapi-cli`.
+- Updated install, uninstall, and help documentation links to use the ClouGence repository URLs.
+
 ## [0.1.0] - 2026-03-19
 
 ### Added
