@@ -9,11 +9,15 @@ _log() {
   shift 3
 
   local line
-  line="$(date '+%Y-%m-%d %H:%M:%S') [${level}] $*"
+  local now
+  now="$(date '+%Y-%m-%d %H:%M:%S')"
+  line="${now} [${level}] $*"
+  local label
+  label="[${level}]"
 
   if [[ "$stream" == "stderr" ]]; then
     if [[ -t 2 ]]; then
-      printf '\033[%sm%s\033[0m\n' "$color" "$line" >&2
+      printf '%s \033[%sm%s\033[0m %s\n' "$now" "$color" "$label" "$*" >&2
     else
       printf '%s\n' "$line" >&2
     fi
@@ -21,7 +25,7 @@ _log() {
   fi
 
   if [[ -t 1 ]]; then
-    printf '\033[%sm%s\033[0m\n' "$color" "$line"
+    printf '%s \033[%sm%s\033[0m %s\n' "$now" "$color" "$label" "$*"
     return
   fi
 
@@ -29,6 +33,7 @@ _log() {
 }
 
 log_info()    { _log "INFO" "32" "stdout" "$@"; }
+log_warn()    { _log "WARN" "33" "stdout" "$@"; }
 log_success() { log_info "$@"; }
 log_error()   { _log "ERROR" "31" "stderr" "$@"; }
 
